@@ -19,3 +19,4 @@
 .target-summary .ant-typography { margin: 0; }
 .placeholder-page { min-height: calc(100vh - 120px); padding: 28px; background: #fff; border: 1px solid #edf0f4; border-radius: 12px; box-shadow: 0 4px 18px rgba(15, 23, 42, .04); }
 @media (max-width: 768px) { .app-content { padding: 16px; } .app-header { padding: 0 16px; } .app-header .ant-typography { display: none; } }
+.route-fallback { min-height: calc(100vh - 120px); display: grid; place-items: center; }

@@ -8,6 +8,10 @@
     "typescript/no-explicit-any": "warn",
     "typescript/no-unused-vars": ["error", { "argsIgnorePattern": "^_" }],
     "no-console": ["warn", { "allow": ["warn", "error"] }],
-    "no-debugger": "error"
+    "no-debugger": "error",
+    "react/jsx-key": "error",
+    "no-var": "error",
+    "prefer-const": "error",
+    "eqeqeq": "error"
   }
 }
