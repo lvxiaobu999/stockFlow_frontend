@@ -4,3 +4,4 @@ dist-ssr
 pnpm-lock.yaml
 .git
 .husky/_
+public/mockServiceWorker.js

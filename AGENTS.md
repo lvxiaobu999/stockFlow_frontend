@@ -27,8 +27,26 @@ Format: `type(scope): subject` — types include `feat`, `fix`, `docs`, `style`,
 - Routes live in `src/router/`, the app shell in `src/layouts/`, and one file per page in `src/pages/`. Lazy-load heavier pages to keep the initial bundle small.
 - Use Ant Design for application components and its `ConfigProvider` token system for theme changes.
 - Use Tailwind utilities for small layout adjustments; keep reusable or stateful UI styles in colocated CSS modules or `src/App.css`.
-- Keep API calls behind a typed service layer. Do not access `fetch` directly from presentational components.
-- Define domain types before wiring pages to real APIs. Mock data should be clearly named and easy to replace.
+- Organize business code by vertical slice under `src/features/<domain>/` (`types.ts`, `services/`, `hooks/`, `components/`). Keep `src/pages/` as thin route composition entries.
+- Keep API calls behind the typed Axios client in `src/services/httpClient.ts`. Do not access `fetch` or import Axios directly from pages or presentational components.
+- Use TanStack Query for server state (`useQuery`/`useMutation`, query keys and invalidation). Do not copy API response data into Zustand.
+- Define domain types before wiring pages to real APIs. Mock data should be clearly named and easy to replace with a service implementation.
+- Use `src/components/` only for components that are genuinely business-agnostic. Do not create one-off abstractions or duplicate dashboard/page markup.
+- Keep cross-page UI/session state in `src/stores/` with Zustand. Keep server data, form state and ephemeral view state in the owning feature.
+- Put pure utility methods in `src/utils/`; utilities must not depend on React, router or feature state.
+- Mock API handlers live in `src/mocks/` and must match the real service response types. Use MSW in development via `VITE_USE_MOCK_API=true`.
+- Route transitions use the shared fade transition in `AppLayout`; preserve the overflow boundary so animations never introduce horizontal scrollbars. Respect `prefers-reduced-motion`.
+- Internal navigation progress is handled by `NavigationProgress` with NProgress; new navigation surfaces should use normal internal anchors/router links so progress tracking remains consistent.
+- Add navigation entries only in `src/config/navigation.tsx`; do not duplicate sidebar labels or paths in layouts.
+- Every data-driven page must handle loading, empty and error states. Every new route must be lazy-loaded when its bundle is non-trivial.
+
+## Collaboration rules
+
+- Before adding a component, search `src/components/` and the owning feature for an existing equivalent.
+- Before adding a store field, explain why the state must cross a route boundary; prefer local state for one screen.
+- Keep one responsibility per file and use named exports for reusable components, hooks and services.
+- New feature work should update the relevant route, navigation item, domain types, service and tests/docs in the same change when applicable.
+- Run `pnpm typecheck`, `pnpm lint`, `pnpm format:check` and `pnpm build` before handoff.
 
 ## Quality bar
 

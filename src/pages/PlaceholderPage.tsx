@@ -3,14 +3,18 @@ import { Typography } from 'antd'
 interface PlaceholderPageProps {
   title: string
   description: string
+  module?: string
 }
 
-/** 尚未实现的业务页面的占位组件，接入真实功能后逐步替换。 */
-export default function PlaceholderPage({ title, description }: PlaceholderPageProps) {
+/** 业务模块完成前使用的通用占位页面。 */
+export default function PlaceholderPage({ title, description, module = '业务模块' }: PlaceholderPageProps) {
   return (
     <div className="placeholder-page">
       <Typography.Title level={2}>{title}</Typography.Title>
       <Typography.Paragraph type="secondary">{description}</Typography.Paragraph>
+      <Typography.Paragraph type="secondary">
+        {module} 已完成路由接入，后续业务代码请放在 src/features/{module} 目录。
+      </Typography.Paragraph>
     </div>
   )
 }
