@@ -57,7 +57,7 @@ export default function DashboardPage() {
       </Row>
       <Row gutter={[16, 16]} className="dashboard-row">
         <Col xs={24} lg={16}>
-          <Card title="库存预警" extra={<Link to="/inventory">查看全部</Link>}>
+          <Card title="库存预警" extra={<Link to="/inventory/stock-alert">查看全部</Link>}>
             {data.inventoryAlerts.length ? (
               <InventoryAlertTable data={data.inventoryAlerts} />
             ) : (

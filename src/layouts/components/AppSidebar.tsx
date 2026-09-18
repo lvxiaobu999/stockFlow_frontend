@@ -2,7 +2,7 @@ import type { MenuProps } from 'antd'
 import { Layout, Menu } from 'antd'
 import { Link, useLocation } from 'react-router-dom'
 import { appEnv } from '@/config/env'
-import { navigationItems, type NavigationItem } from '@/config/navigation'
+import { getNavigationParentKey, navigationItems, type NavigationItem } from '@/config/navigation'
 import { useAppStore } from '@/stores/appStore'
 
 const { Sider } = Layout
@@ -24,6 +24,8 @@ export function AppSidebar() {
   const location = useLocation()
   // 根路径没有对应菜单项，映射到工作台，保证刷新首页时高亮正确。
   const selected = location.pathname === '/' ? '/dashboard' : location.pathname
+  // 反查当前路径所属的一级分组，用于首次加载时展开正确的菜单分组。
+  const parentKey = getNavigationParentKey(location.pathname)
 
   return (
     <Sider
@@ -48,7 +50,7 @@ export function AppSidebar() {
         theme="dark"
         mode="inline"
         selectedKeys={[selected]}
-        defaultOpenKeys={location.pathname.startsWith('/inventory') ? ['inventory'] : []}
+        defaultOpenKeys={parentKey ? [parentKey] : []}
         items={toMenuItems(navigationItems)}
       />
       {!collapsed ? (
