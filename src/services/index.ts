@@ -1,2 +1,2 @@
-export { ApiError, apiClient, request } from './httpClient'
-export type { RequestOptions } from './httpClient'
+export { API_TIMEOUT_MS, ApiError, apiClient, request, unwrapApiResponse } from './httpClient'
+export type { ApiResponse, PaginatedData, RequestOptions } from './httpClient'

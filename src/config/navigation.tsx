@@ -10,10 +10,15 @@ import type { ReactNode } from 'react'
 import { routeMeta } from '@/config/routes'
 
 export interface NavigationItem {
+  /** 菜单唯一标识；有子菜单时作为分组 key，没有子菜单时通常等于 path。 */
   key: string
+  /** 菜单显示文案。 */
   label: string
+  /** 叶子菜单的跳转路径；有子菜单的父级可以省略。 */
   path?: string
+  /** 菜单图标，仅一级菜单需要。 */
   icon?: ReactNode
+  /** 子菜单，递归复用本类型。 */
   children?: NavigationItem[]
 }
 
@@ -64,9 +69,11 @@ export const navigationItems: NavigationItem[] = [
   },
 ]
 
+/** 按路径在导航配置中查找匹配项（含二级子项），用于页面标题等反查场景。 */
 export function findNavigationItem(path: string): NavigationItem | undefined {
   for (const item of navigationItems) {
     if (item.path === path) return item
+    // 一级未命中时再向下查找子菜单，避免遗漏分组内的叶子项。
     const child = item.children?.find((nestedItem) => nestedItem.path === path)
     if (child) return child
   }

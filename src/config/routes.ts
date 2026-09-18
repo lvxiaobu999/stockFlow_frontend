@@ -1,7 +1,11 @@
 export interface RouteMeta {
+  /** 路由路径，同时作为侧边栏导航的跳转目标。 */
   path: string
+  /** 页面标题与侧边栏菜单文案。 */
   title: string
+  /** 页面副标题 / 用途说明，展示在页面头部。 */
   description: string
+  /** 业务模块标识，对应 src/features/<module> 目录，供占位页提示使用。 */
   module: string
 }
 
@@ -41,6 +45,7 @@ export const routeMeta = {
   settings: { path: '/settings', title: '系统设置', description: '配置组织、角色权限和基础参数。', module: 'settings' },
 } as const satisfies Record<string, RouteMeta>
 
+/** 尚未实现业务页面的路由，统一渲染为 PlaceholderPage；实现后应从数组中移除并注册真实页面。 */
 export const placeholderRoutes = [
   routeMeta.inventory,
   routeMeta.inventoryRecords,

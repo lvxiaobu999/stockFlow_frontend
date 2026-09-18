@@ -2,19 +2,20 @@
 
 ## Axios 调用约定
 
-不要在页面或展示组件中直接导入 Axios。统一通过 `src/services/httpClient.ts` 导出的 `apiClient`：
+不要在页面或展示组件中直接导入 Axios。统一通过 `src/services/httpClient.ts` 导出的 `request`（底层实例为 `apiClient`）：
 
 ```ts
-import { apiClient } from '@/services/httpClient'
+import { request } from '@/services/httpClient'
 import type { Product } from '@/features/products/types'
 
-export async function getProducts() {
-  const response = await apiClient.get<Product[]>('/products')
-  return response.data
+export async function getProducts(signal?: AbortSignal) {
+  return request<Product[]>('/products', { signal })
 }
 ```
 
-实例已统一配置 `baseURL`、`withCredentials`、JSON 请求头和错误归一化。需要取消请求时，将 TanStack Query 提供的 `signal` 传给 Axios 的 `signal` 配置。
+实例已统一配置 `baseURL`、`withCredentials`、JSON 请求头、15 秒超时和错误归一化。后端响应统一为 `{ code, message, data }`，其中 `code === 1` 表示成功，`request` 会自动校验并解包 `data`；其它 code 会抛出 `ApiError`。需要取消请求时，将 TanStack Query 提供的 `signal` 传给 Axios 的 `signal` 配置。
+
+分页响应的 `data` 结构为 `{ current, pageSize, total, lists }`，可直接使用 `PaginatedData<T>` 类型。
 
 ## TanStack Query 约定
 

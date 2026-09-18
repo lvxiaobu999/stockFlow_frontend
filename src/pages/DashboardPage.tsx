@@ -6,9 +6,11 @@ import { InventoryAlertTable } from '@/features/dashboard/components/InventoryAl
 import { useDashboardSummary } from '@/features/dashboard/hooks/useDashboardSummary'
 import { clamp } from '@/utils'
 
+/** 工作台页面：组合汇总统计、库存预警与销售目标三个区域。 */
 export default function DashboardPage() {
   const { data, isLoading, error } = useDashboardSummary()
 
+  // 加载中先渲染占位，避免统计卡片出现空值闪烁。
   if (isLoading) {
     return (
       <div className="route-fallback" role="status" aria-label="工作台加载中">
@@ -17,10 +19,12 @@ export default function DashboardPage() {
     )
   }
 
+  // 请求失败或暂无数据时给出可读的错误提示。
   if (error || !data) {
     return <Alert type="error" showIcon message="工作台加载失败" description={error?.message ?? '请稍后重试'} />
   }
 
+  // 目标完成度，clamp 到 0~100，防止超额完成时进度条超出上限。
   const progress = clamp(Math.round((data.monthlySales / data.salesTarget) * 100), 0, 100)
 
   return (

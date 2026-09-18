@@ -1,5 +1,6 @@
 import type { DashboardSummary } from '@/features/dashboard/types'
 
+/** 工作台接口的本地 Mock 数据，字段与真实接口返回类型保持一致。 */
 export const dashboardMock: DashboardSummary = {
   productCount: 1284,
   inventoryValue: 386.4,

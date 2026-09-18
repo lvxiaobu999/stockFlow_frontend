@@ -19,6 +19,7 @@ Use this skill for feature work in the StockFlow frontend.
 ## Conventions
 
 - TypeScript strictness is enforced by the repository tsconfig; do not weaken it to make a change compile.
+- Write code comments in Simplified Chinese. Explain the **why** (business rules, non-obvious decisions, edge cases, magic numbers) rather than restating code, and add a JSDoc block to exported functions, hooks, services, classes and non-obvious domain type fields. See the "Commenting rules" section in `AGENTS.md`.
 - Prefer imports from `@/` for application modules.
 - Keep labels and user-facing copy in Simplified Chinese unless the feature explicitly requires another locale.
 - Use semantic HTML, keyboard-accessible controls, and responsive layouts.

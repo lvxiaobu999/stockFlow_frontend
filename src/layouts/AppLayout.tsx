@@ -14,16 +14,19 @@ const { Content } = Layout
 export default function AppLayout() {
   const location = useLocation()
   const outlet = useOutlet()
+  // 用完整地址（含查询与 hash）作为切换 key，路径变化时触发一次过渡动画。
   const transitionKey = `${location.pathname}${location.search}${location.hash}`
+  // key 变化时重建 ref 对象，供 CSSTransition 协调新旧节点的进入与离开。
   const transitionNode = useMemo(() => ({ key: transitionKey, ref: createRef<HTMLDivElement>() }), [transitionKey])
 
   return (
     <Layout className="app-shell">
       <AppSidebar />
-      <Layout>
+      <Layout className="app-main-layout">
         <AppHeader />
         <Content className="app-content">
           <div className="route-transition-viewport">
+            {/* out-in：旧页面先淡出再挂载新页面，避免两者同时存在造成布局跳动。 */}
             <SwitchTransition mode="out-in">
               <CSSTransition
                 key={transitionNode.key}

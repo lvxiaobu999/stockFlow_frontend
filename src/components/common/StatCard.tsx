@@ -5,6 +5,7 @@ type StatCardProps = StatisticProps & {
   title: string
 }
 
+/** 统计卡片：包裹 Ant Design Statistic，透传其余配置给统计组件。 */
 export function StatCard({ title, ...statisticProps }: StatCardProps) {
   return (
     <Card>

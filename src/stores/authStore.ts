@@ -16,7 +16,9 @@ interface AuthState {
 
 /** 内存会话状态。敏感凭证不会写入 localStorage。 */
 export const useAuthStore = create<AuthState>()((set) => ({
+  // 占位登录态：接入真实鉴权后由登录流程写入，不要在此硬编码。
   currentUser: { id: 'demo-user', name: '管理员', role: '系统管理员' },
+  // 占位通知数：后续接入通知接口后由服务端返回。
   unreadNotifications: 3,
   setCurrentUser: (currentUser) => set({ currentUser }),
   setUnreadNotifications: (unreadNotifications) => set({ unreadNotifications }),

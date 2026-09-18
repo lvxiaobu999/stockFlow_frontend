@@ -2,7 +2,8 @@ import react, { reactCompilerPreset } from '@vitejs/plugin-react'
 import babel from '@rolldown/plugin-babel'
 import { dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { defineConfig, loadEnv } from 'vite'
+import { defineConfig } from 'vitest/config'
+import { loadEnv } from 'vite'
 
 const projectRoot = dirname(fileURLToPath(import.meta.url))
 
@@ -58,6 +59,11 @@ export default defineConfig(({ mode }) => {
     define: {
       // 这是构建时元数据，不是运行时密钥。
       __APP_VERSION__: JSON.stringify(process.env.npm_package_version ?? '0.0.0'),
+    },
+    test: {
+      globals: true,
+      environment: 'node',
+      include: ['src/**/*.test.ts', 'src/**/*.test.tsx'],
     },
   }
 })

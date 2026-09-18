@@ -48,6 +48,18 @@ Format: `type(scope): subject` — types include `feat`, `fix`, `docs`, `style`,
 - New feature work should update the relevant route, navigation item, domain types, service and tests/docs in the same change when applicable.
 - Run `pnpm typecheck`, `pnpm lint`, `pnpm format:check` and `pnpm build` before handoff.
 
+## Commenting rules
+
+Treat comments as a first-class part of the code, not an afterthought. A new teammate should be able to understand the intent behind a function, hook, effect or domain type without asking the author.
+
+- Write code comments in Simplified Chinese, matching the existing convention (`/** ... */` doc blocks and `//` inline notes).
+- Add a JSDoc block to every exported function, component, hook, service method, class, and non-obvious constant. State **what it does and why it exists**, not just what it is.
+- Comment the **why**, not the **what**: business rules, non-obvious decisions, edge cases, magic numbers, and workarounds. Do not restate self-evident code.
+- Document non-obvious fields in domain types and response envelopes — units, enum meaning, and backend conventions (e.g. `total` means total pages, not total rows).
+- Comment hooks and effects: the side effect they produce, when they run, and what cleanup they perform (timers, event listeners, history patching).
+- Comment store fields whose state crosses a route boundary, per the architecture rule above.
+- Keep comments current when the code changes and delete stale comments. A wrong comment is worse than no comment.
+
 ## Quality bar
 
 - All new code must be TypeScript and pass `pnpm build`, `pnpm lint` and `pnpm typecheck`.
