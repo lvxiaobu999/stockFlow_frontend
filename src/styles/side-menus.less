@@ -4,21 +4,31 @@
   .ant-menu-item {
     border-radius: calc(var(--ant-menu-item-height) / 2);
     .ant-menu-item-icon {
-      font-size: 20px;
+      font-size: 20px !important;
     }
   }
   .ant-menu-submenu {
     .ant-menu-submenu-title {
       border-radius: calc(var(--ant-menu-item-height) / 2);
       .ant-menu-item-icon {
-        font-size: 20px;
+        font-size: 20px !important;
       }
     }
-    // .ant-menu-item-only-child {
-    //   &::before {
-
-    //   }
-    // }
+    .ant-menu-item-only-child {
+      &::before {
+        display: block;
+        content: '';
+        width: 9px;
+        height: 9px;
+        border-radius: 100%;
+        border: 2px solid #919191;
+        position: absolute;
+        left: 24px;
+        top: 20px;
+        transform: translate(50%, -50%);
+        box-shadow: 0 0 3px #919191;
+      }
+    }
 
   }
   .ant-menu-item-selected {

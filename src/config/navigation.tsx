@@ -1,18 +1,5 @@
-import {
-  AuditOutlined,
-  BarChartOutlined,
-  CarryOutOutlined,
-  DashboardOutlined,
-  DatabaseOutlined,
-  PayCircleOutlined,
-  ReconciliationOutlined,
-  SettingOutlined,
-  ShopOutlined,
-  ShoppingOutlined,
-  TagsOutlined,
-  TeamOutlined,
-} from '@ant-design/icons'
 import type { ReactNode } from 'react'
+import { SvgIcon } from '@/components/common/SvgIcon'
 import { routeMeta } from '@/config/routes'
 
 export interface NavigationItem {
@@ -40,13 +27,13 @@ export const navigationItems: NavigationItem[] = [
     key: routeMeta.dashboard.path,
     label: routeMeta.dashboard.title,
     path: routeMeta.dashboard.path,
-    icon: <DashboardOutlined />,
+    icon: <SvgIcon name="menu-icon-dashboard" />,
   },
   // 01 库存管理
   {
     key: 'inventory',
     label: '库存管理',
-    icon: <DatabaseOutlined />,
+    icon: <SvgIcon name="menu-icon-inventory" />,
     children: [
       { key: routeMeta.warehouse.path, label: routeMeta.warehouse.title, path: routeMeta.warehouse.path },
       { key: routeMeta.currentStock.path, label: routeMeta.currentStock.title, path: routeMeta.currentStock.path },
@@ -62,7 +49,7 @@ export const navigationItems: NavigationItem[] = [
   {
     key: 'product',
     label: '商品管理',
-    icon: <TagsOutlined />,
+    icon: <SvgIcon name="menu-icon-product" />,
     children: [
       {
         key: routeMeta.productCategory.path,
@@ -76,7 +63,7 @@ export const navigationItems: NavigationItem[] = [
   {
     key: 'purchase',
     label: '采购管理',
-    icon: <ShoppingOutlined />,
+    icon: <SvgIcon name="menu-icon-purchase" />,
     children: [
       {
         key: routeMeta.purchaseRequest.path,
@@ -90,7 +77,7 @@ export const navigationItems: NavigationItem[] = [
   {
     key: 'supplier-portal',
     label: '供应商端',
-    icon: <ShopOutlined />,
+    icon: <SvgIcon name="menu-icon-supplier-portal" />,
     children: [
       {
         key: routeMeta.supplierPortalHome.path,
@@ -118,7 +105,7 @@ export const navigationItems: NavigationItem[] = [
   {
     key: 'approval',
     label: '审批中心',
-    icon: <AuditOutlined />,
+    icon: <SvgIcon name="menu-icon-approval" />,
     children: [
       {
         key: routeMeta.approvalPending.path,
@@ -136,7 +123,7 @@ export const navigationItems: NavigationItem[] = [
   {
     key: 'reconciliation',
     label: '对账管理',
-    icon: <ReconciliationOutlined />,
+    icon: <SvgIcon name="menu-icon-reconciliation" />,
     children: [
       {
         key: routeMeta.reconciliationList.path,
@@ -159,7 +146,7 @@ export const navigationItems: NavigationItem[] = [
   {
     key: 'supplier',
     label: '供应商管理',
-    icon: <TeamOutlined />,
+    icon: <SvgIcon name="menu-icon-supplier" />,
     children: [
       { key: routeMeta.supplierList.path, label: routeMeta.supplierList.title, path: routeMeta.supplierList.path },
     ],
@@ -168,7 +155,7 @@ export const navigationItems: NavigationItem[] = [
   {
     key: 'payment',
     label: '付款管理',
-    icon: <PayCircleOutlined />,
+    icon: <SvgIcon name="menu-icon-payment" />,
     children: [
       {
         key: routeMeta.paymentPending.path,
@@ -186,7 +173,7 @@ export const navigationItems: NavigationItem[] = [
   {
     key: 'report',
     label: '报表中心',
-    icon: <BarChartOutlined />,
+    icon: <SvgIcon name="menu-icon-report" />,
     children: [
       {
         key: routeMeta.reportDashboard.path,
@@ -230,7 +217,7 @@ export const navigationItems: NavigationItem[] = [
   {
     key: 'receiving',
     label: '收货与验收',
-    icon: <CarryOutOutlined />,
+    icon: <SvgIcon name="menu-icon-receiving" />,
     children: [
       {
         key: routeMeta.receivingReceipt.path,
@@ -248,7 +235,7 @@ export const navigationItems: NavigationItem[] = [
   {
     key: 'system',
     label: '系统管理',
-    icon: <SettingOutlined />,
+    icon: <SvgIcon name="menu-icon-system" />,
     children: [
       { key: routeMeta.systemUser.path, label: routeMeta.systemUser.title, path: routeMeta.systemUser.path },
       { key: routeMeta.systemRole.path, label: routeMeta.systemRole.title, path: routeMeta.systemRole.path },
