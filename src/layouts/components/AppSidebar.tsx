@@ -4,6 +4,7 @@ import { Link, useLocation } from 'react-router-dom'
 import { appEnv } from '@/config/env'
 import { getNavigationParentKey, navigationItems, type NavigationItem } from '@/config/navigation'
 import { useAppStore } from '@/stores/appStore'
+import '@/styles/side-menus.less'
 
 const { Sider } = Layout
 
@@ -29,6 +30,7 @@ export function AppSidebar() {
 
   return (
     <Sider
+      theme="light"
       collapsible
       collapsed={collapsed}
       trigger={null}
@@ -47,8 +49,9 @@ export function AppSidebar() {
         ) : null}
       </div>
       <Menu
-        theme="dark"
+        theme="light"
         mode="inline"
+        rootClassName="side-menus"
         selectedKeys={[selected]}
         defaultOpenKeys={parentKey ? [parentKey] : []}
         items={toMenuItems(navigationItems)}

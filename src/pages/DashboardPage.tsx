@@ -48,7 +48,7 @@ export default function DashboardPage() {
             precision={1}
             prefix="¥"
             suffix="万"
-            valueStyle={{ color: '#1677ff' }}
+            valueStyle={{ color: '#501529' }}
           />
         </Col>
         <Col xs={24} sm={12} lg={6}>
@@ -71,7 +71,7 @@ export default function DashboardPage() {
               <Typography.Title level={2}>¥{data.monthlySales}万</Typography.Title>
               <Typography.Text type="secondary">目标 ¥{data.salesTarget}万</Typography.Text>
             </div>
-            <Progress percent={progress} strokeColor="#1677ff" />
+            <Progress percent={progress} strokeColor="#501529" />
             <Typography.Text type="secondary">较上月增长 18.6%</Typography.Text>
           </Card>
         </Col>

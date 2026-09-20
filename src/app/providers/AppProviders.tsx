@@ -12,9 +12,12 @@ export function AppProviders({ children }: PropsWithChildren) {
       <ConfigProvider
         locale={zhCN}
         theme={{
+          // 开启 CSS 变量模式：antd 会把 token 生成为 --ant-* 变量，供自定义样式引用，
+          // 换肤时只需改 colorPrimary，所有 var(--ant-*) 会一起更新。
+          cssVar: { key: 'stockflow' },
           algorithm: theme.defaultAlgorithm,
           token: {
-            colorPrimary: '#1677ff',
+            colorPrimary: '#501529',
             borderRadius: 8,
             fontFamily: 'Inter, "PingFang SC", system-ui, sans-serif',
           },

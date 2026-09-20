@@ -42,21 +42,6 @@ export const navigationItems: NavigationItem[] = [
     path: routeMeta.dashboard.path,
     icon: <DashboardOutlined />,
   },
-  // 00 系统管理
-  {
-    key: 'system',
-    label: '系统管理',
-    icon: <SettingOutlined />,
-    children: [
-      { key: routeMeta.systemUser.path, label: routeMeta.systemUser.title, path: routeMeta.systemUser.path },
-      { key: routeMeta.systemRole.path, label: routeMeta.systemRole.title, path: routeMeta.systemRole.path },
-      {
-        key: routeMeta.systemOperationLog.path,
-        label: routeMeta.systemOperationLog.title,
-        path: routeMeta.systemOperationLog.path,
-      },
-    ],
-  },
   // 01 库存管理
   {
     key: 'inventory',
@@ -256,6 +241,21 @@ export const navigationItems: NavigationItem[] = [
         key: routeMeta.receivingInspection.path,
         label: routeMeta.receivingInspection.title,
         path: routeMeta.receivingInspection.path,
+      },
+    ],
+  },
+  // 00 系统管理
+  {
+    key: 'system',
+    label: '系统管理',
+    icon: <SettingOutlined />,
+    children: [
+      { key: routeMeta.systemUser.path, label: routeMeta.systemUser.title, path: routeMeta.systemUser.path },
+      { key: routeMeta.systemRole.path, label: routeMeta.systemRole.title, path: routeMeta.systemRole.path },
+      {
+        key: routeMeta.systemOperationLog.path,
+        label: routeMeta.systemOperationLog.title,
+        path: routeMeta.systemOperationLog.path,
       },
     ],
   },
