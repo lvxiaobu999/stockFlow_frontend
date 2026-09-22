@@ -8,51 +8,134 @@
   min-height: 0;
   overflow: hidden;
 }
+
+/**************
+
+侧边栏样式设置 Start
+
+*****************/
+
 .app-sider {
   height: 100vh;
   min-height: 0;
   overflow: auto;
   box-shadow: 2px 0 8px rgba(15, 23, 42, 0.08);
   z-index: 10;
+  .brand {
+    height: 64px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 0 20px;
+    color: #1f2937;
+    overflow: hidden;
+  }
+  .brand-mark {
+    width: 32px;
+    height: 32px;
+    flex: 0 0 32px;
+    display: grid;
+    place-items: center;
+    border-radius: 9px;
+    background: linear-gradient(135deg, #7a2d45, #501529);
+    color: #fff;
+    font-size: 20px;
+    font-weight: 800;
+  }
+  .brand strong,
+  .brand span {
+    display: block;
+    white-space: nowrap;
+  }
+  .brand strong {
+    font-size: 16px;
+    letter-spacing: 0.3px;
+  }
+  .brand span {
+    color: #64748b;
+    font-size: 11px;
+    margin-top: 2px;
+  }
+
 }
+
+
+// 收缩状态
+.app-sider.ant-layout-sider-collapsed {
 .brand {
-  height: 64px;
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 0 20px;
-  color: #1f2937;
-  overflow: hidden;
-}
-.brand-mark {
-  width: 32px;
-  height: 32px;
-  flex: 0 0 32px;
-  display: grid;
-  place-items: center;
-  border-radius: 9px;
-  background: linear-gradient(135deg, #7a2d45, #501529);
-  color: #fff;
-  font-size: 20px;
-  font-weight: 800;
-}
-.brand strong,
-.brand span {
-  display: block;
-  white-space: nowrap;
-}
-.brand strong {
-  font-size: 16px;
-  letter-spacing: 0.3px;
-}
-.brand span {
-  color: #64748b;
-  font-size: 11px;
-  margin-top: 2px;
-}
+      justify-content: center;
+    }
+  }
+
+
+/* ===== 侧边栏菜单：Menu 的 styles 语义插槽覆盖不到的部分 =====
+   1. 选中态渐变：styles 是静态内联样式无法按选中状态区分，而 itemSelectedBg token
+      走 backgroundColor 属性放不了渐变，只能用 CSS 选择器实现；
+   2. 分组标题（.ant-menu-submenu-title）：antd 6.6.4 的语义插槽未覆盖该元素。 */
 .app-sider .ant-menu {
   border-inline-end: 0;
+  .ant-menu-submenu {
+    .ant-menu-submenu-title {
+      border-radius: calc(var(--ant-menu-item-height) / 2);
+      .ant-menu-item-icon {
+        font-size: 20px !important;
+      }
+    }
+    .ant-menu-item-only-child {
+      &::before {
+        display: block;
+        content: '';
+        width: 9px;
+        height: 9px;
+        border-radius: 100%;
+        border: 2px solid #919191;
+        position: absolute;
+        left: 24px;
+        top: 20px;
+        transform: translate(50%, -50%);
+        box-shadow: 0 0 3px #919191;
+      }
+    }
+  }
 }
+.app-side-menu .ant-menu-item-selected {
+  background: linear-gradient(
+    to right,
+    var(--ant-color-primary),
+    var(--ant-color-primary-hover),
+    var(--ant-color-primary)
+  );
+  color: #fff;
+}
+/* 分组标题与叶子项共用同一套胶囊圆角（叶子项走 styles.item 插槽）。 */
+.app-side-menu .ant-menu-submenu-title {
+  border-radius: 20px;
+}
+/* 折叠态：分组标题同样收敛为 40x40 的圆形按钮，并隐藏文字避免图标偏移。 */
+.app-side-menu.ant-menu-inline-collapsed > .ant-menu-submenu > .ant-menu-submenu-title {
+  width: 40px;
+  height: 40px;
+  margin-inline: auto;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.app-side-menu.ant-menu-inline-collapsed .ant-menu-submenu-title .ant-menu-title-content {
+  display: none;
+}
+
+.app-side-menu.ant-menu-submenu-popup {
+  .ant-menu-sub {
+    .ant-menu-item-selected {
+      .ant-menu-title-content {
+        color: #fff;
+      }
+    }
+  }
+}
+
+
 .sider-footer {
   position: absolute;
   bottom: 20px;

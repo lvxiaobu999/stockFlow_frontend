@@ -2,7 +2,7 @@ import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import { BrowserRouter } from 'react-router-dom'
 import { appEnv } from '@/config/env'
-import './index.css'
+import './styles/index.css'
 import App from './App.tsx'
 
 /** 在开发环境按需启动 MSW，拦截匹配的接口请求；Mock 未启用时直接跳过。 */
