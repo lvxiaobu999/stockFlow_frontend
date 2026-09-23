@@ -1,26 +1,43 @@
+/* =============================================================================
+   全局布局样式（App.less）
+   -----------------------------------------------------------------------------
+   只放跨页面复用的应用壳层样式：布局骨架、侧边栏、页头、内容区、路由过渡
+   动画和通用页面容器。局部微调优先用 Tailwind 工具类（见 src/styles/index.css），
+   业务组件样式放各自 feature 的样式文件。
+   文件按「外 → 内」的布局层级分区，新增样式请放进对应分区。
+   ============================================================================= */
+
+/* ---------------------------------------------------------------------------
+   1. 应用壳层：锁定一屏，把滚动收敛到内容区
+   ------------------------------------------------------------------------ */
+
+/* 最外层 Layout：整页禁止滚动，高度锚定一屏，滚动交给 .app-content。 */
 .app-shell {
   height: 100vh;
   min-height: 100vh;
   overflow: hidden;
 }
+
+/* 右侧主列（页头 + 内容区）。min-height: 0 允许子级在 flex 布局中正常收缩。 */
 .app-main-layout {
   height: 100vh;
   min-height: 0;
   overflow: hidden;
 }
 
-/**************
+/* ---------------------------------------------------------------------------
+   2. 侧边栏：品牌区与折叠态
+   ------------------------------------------------------------------------ */
 
-侧边栏样式设置 Start
-
-*****************/
-
+/* 侧栏自身可滚动，长菜单不会撑破布局；z-index 保证侧栏阴影盖过内容区。 */
 .app-sider {
   height: 100vh;
   min-height: 0;
   overflow: auto;
-  box-shadow: 2px 0 8px rgba(15, 23, 42, 0.08);
+  box-shadow: 2px 0 8px rgb(15 23 42 / 8%);
   z-index: 10;
+
+  /* 品牌区高度与页头对齐（64px）；折叠态由下方 collapsed 规则居中。 */
   .brand {
     height: 64px;
     display: flex;
@@ -30,6 +47,8 @@
     color: #1f2937;
     overflow: hidden;
   }
+
+  /* Logo 方块：品牌色渐变圆角块；flex 基准 32px 防止被右侧文字挤压。 */
   .brand-mark {
     width: 32px;
     height: 32px;
@@ -42,45 +61,55 @@
     font-size: 20px;
     font-weight: 800;
   }
+
+  /* 主/副标题强制单行，超宽部分由 .brand 的 overflow: hidden 裁剪。 */
   .brand strong,
   .brand span {
     display: block;
     white-space: nowrap;
   }
+
   .brand strong {
     font-size: 16px;
     letter-spacing: 0.3px;
   }
+
   .brand span {
     color: #64748b;
     font-size: 11px;
     margin-top: 2px;
   }
-
 }
 
-
-// 收缩状态
+/* 折叠态：标题隐藏后只保留 Logo，品牌区水平居中。 */
 .app-sider.ant-layout-sider-collapsed {
-.brand {
-      justify-content: center;
-    }
+  .brand {
+    justify-content: center;
   }
+}
 
+/* ---------------------------------------------------------------------------
+   3. 侧边栏菜单：antd Menu 语义插槽覆盖不到的部分
+   ----------------------------------------------------------------------------
+   Menu 的 styles 插槽（见 AppSidebar.tsx）以静态内联样式注入，能覆盖叶子项，
+   但以下两种情况只能用 CSS 选择器实现：
+   1. 选中态渐变：内联样式无法按选中/非选中状态区分；
+   2. 分组标题（.ant-menu-submenu-title）：antd 6.6.4 未提供语义插槽。
+   注意：首条规则优先级低于后面带 .app-sider 前缀的规则，必须写在它前面
+   （stylelint 的 no-descending-specificity 规则强制要求）。 */
 
-/* ===== 侧边栏菜单：Menu 的 styles 语义插槽覆盖不到的部分 =====
-   1. 选中态渐变：styles 是静态内联样式无法按选中状态区分，而 itemSelectedBg token
-      走 backgroundColor 属性放不了渐变，只能用 CSS 选择器实现；
-   2. 分组标题（.ant-menu-submenu-title）：antd 6.6.4 的语义插槽未覆盖该元素。 */
+/* 分组标题与叶子项共用同一套胶囊圆角：40px 行高 + 20px 圆角，左右两端正好半圆。 */
+.app-side-menu .ant-menu-submenu-title {
+  border-radius: 20px;
+}
+
 .app-sider .ant-menu {
+  /* 去掉 antd inline 菜单的默认右边框，避免与侧栏阴影叠加出双线。 */
   border-inline-end: 0;
+
   .ant-menu-submenu {
-    .ant-menu-submenu-title {
-      border-radius: calc(var(--ant-menu-item-height) / 2);
-      .ant-menu-item-icon {
-        font-size: 20px !important;
-      }
-    }
+    /* 叶子项的圆点指示符（替代图标位）：绝对定位对齐 40px 行高的视觉中心，
+       外发光强化「节点」感。left/top 的 24px/20px 为设计稿标注值。 */
     .ant-menu-item-only-child {
       &::before {
         display: block;
@@ -98,6 +127,8 @@
     }
   }
 }
+
+/* 选中项品牌色渐变 + 白字；颜色走 var(--ant-*) token，跟随 ConfigProvider 换肤。 */
 .app-side-menu .ant-menu-item-selected {
   background: linear-gradient(
     to right,
@@ -107,11 +138,8 @@
   );
   color: #fff;
 }
-/* 分组标题与叶子项共用同一套胶囊圆角（叶子项走 styles.item 插槽）。 */
-.app-side-menu .ant-menu-submenu-title {
-  border-radius: 20px;
-}
-/* 折叠态：分组标题同样收敛为 40x40 的圆形按钮，并隐藏文字避免图标偏移。 */
+
+/* 折叠态：分组标题与叶子项一致，收敛为 40x40 圆形按钮，用 auto 边距水平居中。 */
 .app-side-menu.ant-menu-inline-collapsed > .ant-menu-submenu > .ant-menu-submenu-title {
   width: 40px;
   height: 40px;
@@ -121,10 +149,13 @@
   align-items: center;
   justify-content: center;
 }
+
+/* 折叠态：隐藏分组标题文字，避免文字挤压图标导致偏移。 */
 .app-side-menu.ant-menu-inline-collapsed .ant-menu-submenu-title .ant-menu-title-content {
   display: none;
 }
 
+/* 折叠后分组内的叶子项出现在悬浮弹层中，选中项文字保持白色以配合深色渐变背景。 */
 .app-side-menu.ant-menu-submenu-popup {
   .ant-menu-sub {
     .ant-menu-item-selected {
@@ -135,7 +166,11 @@
   }
 }
 
+/* ---------------------------------------------------------------------------
+   4. 侧边栏页脚
+   ------------------------------------------------------------------------ */
 
+/* 固定在侧栏左下角（相对 .app-sider 定位）。 */
 .sider-footer {
   position: absolute;
   bottom: 20px;
@@ -143,6 +178,8 @@
   color: #64748b;
   font-size: 12px;
 }
+
+/* 系统状态小圆点（绿色 = 正常），配合页脚状态文字使用。 */
 .status-dot {
   display: inline-block;
   width: 7px;
@@ -151,6 +188,12 @@
   background: #52c41a;
   margin-right: 7px;
 }
+
+/* ---------------------------------------------------------------------------
+   5. 页头
+   ------------------------------------------------------------------------ */
+
+/* 高度与品牌区对齐（64px）；左右 28px 留白与内容区 padding 呼应。 */
 .app-header {
   height: 64px;
   padding: 0 28px;
@@ -160,82 +203,62 @@
   align-items: center;
   justify-content: space-between;
 }
+
+/* 通知铃铛等图标入口：次级文字色 + 手型光标。 */
 .header-icon {
   color: #64748b;
   font-size: 18px;
   cursor: pointer;
 }
+
+/* ---------------------------------------------------------------------------
+   6. 内容区：全页唯一的滚动容器
+   ------------------------------------------------------------------------ */
+
+/* 高度 = 一屏 - 页头 64px；两个方向分开控制溢出：
+   x 方向 clip 裁掉横向溢出，y 方向 auto 交给长页面滚动。 */
 .app-content {
   min-height: 0;
   height: calc(100vh - 64px);
   padding: 28px;
-  overflow-x: clip;
-  overflow-y: auto;
+  overflow: clip auto;
 }
+
+/* ---------------------------------------------------------------------------
+   7. 路由过渡动画（react-transition-group，AppLayout 中 classNames="route-fade"）
+   ------------------------------------------------------------------------ */
+
+/* 动画视口：不设固定高度，只保底一屏（100vh - 页头 64px - 上下内边距 56px），
+   长页面由容器自然撑开后交给 .app-content 滚动，避免被 overflow 裁掉。
+   overflow: hidden 裁掉 route-fade 过渡期间 transform 的视觉溢出，
+   防止动画引入横向滚动条；容器高度随内容增长，垂直方向不会截断。 */
 .route-transition-viewport {
   width: 100%;
-  /* 不设固定高度，只保底一屏（100vh - 页头 64px - 上下内边距 56px），
-     长页面由容器自然撑开后交给 .app-content 滚动，避免被 overflow 裁掉。 */
   min-height: calc(100vh - 120px);
-  /* 保留动画溢出边界：裁掉 route-fade 过渡期间 transform 的视觉溢出，
-     防止动画引入横向滚动条；容器高度随内容增长，垂直方向不会截断。 */
   overflow: hidden;
 }
+
+/* 每个路由页面的直接包裹层；will-change 提示浏览器为透明度/位移动画建立合成层。 */
 .route-transition {
   width: 100%;
   min-height: calc(100vh - 120px);
   will-change: opacity, transform;
 }
-.dashboard-page {
-  max-width: 1440px;
-  margin: 0 auto;
-}
-.page-heading {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 24px;
-}
-.page-heading .ant-typography {
-  margin: 0;
-}
-.dashboard-row {
-  margin-top: 16px;
-}
-.target-summary {
-  margin: 18px 0 14px;
-}
-.target-summary .ant-typography {
-  margin: 0;
-}
-.placeholder-page {
-  min-height: calc(100vh - 120px);
-  padding: 28px;
-  background: #fff;
-  border: 1px solid #edf0f4;
-  border-radius: 12px;
-  box-shadow: 0 4px 18px rgba(15, 23, 42, 0.04);
-}
-@media (max-width: 768px) {
-  .app-content {
-    padding: 16px;
-  }
-  .app-header {
-    padding: 0 16px;
-  }
-  .header-context {
-    display: none;
-  }
-}
+
+/* 路由懒加载或渲染异常时的兜底占位（RouteFallback 组件）。 */
 .route-fallback {
   min-height: calc(100vh - 120px);
   display: grid;
   place-items: center;
 }
+
+/* 进入起始帧：从下方 12px 处、99% 缩放开始，准备上浮淡入。 */
 .route-fade-enter {
   opacity: 0;
   transform: translate3d(0, 12px, 0) scale(0.99);
 }
+
+/* 进入进行时：220ms 与 AppLayout 中 CSSTransition 的 timeout 保持一致。 */
 .route-fade-enter-active {
   opacity: 1;
   transform: translate3d(0, 0, 0) scale(1);
@@ -243,10 +266,14 @@
     opacity 220ms ease-out,
     transform 220ms ease-out;
 }
+
+/* 离开起始帧：静止状态，与进入结束帧一致，保证动画衔接。 */
 .route-fade-exit {
   opacity: 1;
   transform: translate3d(0, 0, 0) scale(1);
 }
+
+/* 离开进行时：向上 8px 淡出，比进入（220ms）更快，减少页面切换的等待感。 */
 .route-fade-exit-active {
   opacity: 0;
   transform: translate3d(0, -8px, 0) scale(0.99);
@@ -254,9 +281,78 @@
     opacity 160ms ease-in,
     transform 160ms ease-in;
 }
+
+/* 用户偏好减弱动效时把过渡压到 1ms 而非直接禁用：
+   保持 out-in 时序（旧页面先卸载、新页面再挂载），避免布局跳动。 */
 @media (prefers-reduced-motion: reduce) {
   .route-fade-enter-active,
   .route-fade-exit-active {
     transition-duration: 1ms;
+  }
+}
+
+/* ---------------------------------------------------------------------------
+   8. 通用页面容器（跨页面复用的页面骨架）
+   ------------------------------------------------------------------------ */
+
+/* 仪表盘内容最大宽度：超宽屏下居中，避免表格与卡片行长失控。 */
+.dashboard-page {
+  max-width: 1440px;
+  margin: 0 auto;
+}
+
+/* 页面标题行（PageHeader 组件）：标题与右侧操作区两端对齐。 */
+.page-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 24px;
+}
+
+/* Typography 自带的下边距会破坏标题行的垂直对齐，这里清掉。 */
+.page-heading .ant-typography {
+  margin: 0;
+}
+
+/* 仪表盘区块之间的统一间距。 */
+.dashboard-row {
+  margin-top: 16px;
+}
+
+/* 经营目标摘要块的上下间距。 */
+.target-summary {
+  margin: 18px 0 14px;
+}
+
+.target-summary .ant-typography {
+  margin: 0;
+}
+
+/* 占位页容器（未实现模块的通用白底卡片），保底一屏。 */
+.placeholder-page {
+  min-height: calc(100vh - 120px);
+  padding: 28px;
+  background: #fff;
+  border: 1px solid #edf0f4;
+  border-radius: 12px;
+  box-shadow: 0 4px 18px rgb(15 23 42 / 4%);
+}
+
+/* ---------------------------------------------------------------------------
+   9. 响应式（<= 768px 平板/手机）
+   ------------------------------------------------------------------------ */
+
+/* 收窄内容区与页头的左右留白；隐藏页头上下文文字，给操作图标腾出空间。 */
+@media (width <= 768px) {
+  .app-content {
+    padding: 16px;
+  }
+
+  .app-header {
+    padding: 0 16px;
+  }
+
+  .header-context {
+    display: none;
   }
 }
