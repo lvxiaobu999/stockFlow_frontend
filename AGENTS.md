@@ -9,6 +9,7 @@ StockFlow is a React 19 + TypeScript + Vite frontend for an inventory, purchasin
 - `pnpm dev` starts Vite with hot reload.
 - `pnpm build` runs the TypeScript project build and production Vite build.
 - `pnpm lint` runs Oxlint. `pnpm lint:fix` auto-fixes what it can.
+- `pnpm lint:css` runs Stylelint over `src/**/*.{css,less}`. `pnpm lint:css:fix` auto-fixes what it can.
 - `pnpm typecheck` runs TypeScript type checking across all projects.
 - `pnpm format` formats the repo with Prettier; `pnpm format:check` verifies formatting only.
 - `pnpm preview` serves the production build locally.
@@ -26,7 +27,7 @@ Format: `type(scope): subject` — types include `feat`, `fix`, `docs`, `style`,
 - Use `src/` as the application root and import through the `@/*` alias for shared modules.
 - Routes live in `src/router/`, the app shell in `src/layouts/`, and one file per page in `src/pages/`. Lazy-load heavier pages to keep the initial bundle small.
 - Use Ant Design for application components and its `ConfigProvider` token system for theme changes.
-- Use Tailwind utilities for small layout adjustments; keep reusable or stateful UI styles in colocated CSS modules or `src/App.css`.
+- Use Tailwind v4 utilities for small layout adjustments. Tailwind is configured CSS-first: theme tokens live in the `@theme` block of `src/styles/index.css` and there is no `tailwind.config.*` or `postcss.config.*`. antd styles are wrapped in `@layer antd` (via `StyleProvider layer` in `AppProviders`, with the layer order declared at the top of `src/styles/index.css`) so plain utilities like `text-brand-600` can override antd component styles — do not add `!important` for that. Keep reusable or stateful UI styles in colocated CSS modules or `src/styles/App.less`; all CSS/Less must pass `pnpm lint:css`.
 - Organize business code by vertical slice under `src/features/<domain>/` (`types.ts`, `services/`, `hooks/`, `components/`). Keep `src/pages/` as thin route composition entries.
 - Keep API calls behind the typed Axios client in `src/services/httpClient.ts`. Do not access `fetch` or import Axios directly from pages or presentational components.
 - Use TanStack Query for server state (`useQuery`/`useMutation`, query keys and invalidation). Do not copy API response data into Zustand.

@@ -10,7 +10,7 @@
   width: 100%;
   height: 3px;
   background: #501529;
-  box-shadow: 0 0 10px rgba(80, 21, 41, 0.7);
+  box-shadow: 0 0 10px rgb(80 21 41 / 70%);
 }
 
 #nprogress .peg {

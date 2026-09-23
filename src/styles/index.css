@@ -1,23 +1,47 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+/* 声明级联层顺序（必须放在 @import 之前）：
+   Tailwind v4 会把 preflight/工具类放进 base/utilities 层，而 antd 的 CSS-in-JS
+   样式默认不带层，按 CSS 规则无层样式会整体压过有层样式，导致 text-brand-600
+   这类工具类无法覆盖 antd 组件样式。因此用 StyleProvider layer 把 antd 样式收进
+   antd 层，并在这里把它排到 utilities 之前：antd 仍能压过 preflight（base），
+   但显式写在元素上的工具类可以覆盖 antd，恢复 v3 时代的覆盖语义。 */
+@layer theme, base, components, antd, utilities;
+
+@import 'tailwindcss';
+
+/* Tailwind v4 改为 CSS 优先配置：这里取代原 tailwind.config.ts。
+   --color-brand-* 生成 bg-brand-500、text-brand-600 等工具类，
+   --shadow-panel 生成 shadow-panel 工具类。
+   Ant Design 仍负责主要组件主题，这些颜色主要用于局部布局调整。 */
+@theme {
+  --color-brand-50: #fceef1;
+  --color-brand-100: #f6dde2;
+  --color-brand-500: #501529;
+  --color-brand-600: #3c0f1e;
+  --color-brand-700: #2c0a16;
+
+  /* 轻量自定义容器使用的通用面板阴影。 */
+  --shadow-panel: 0 4px 18px rgb(15 23 42 / 6%);
+}
 
 :root {
   font-family: Inter, 'PingFang SC', 'Microsoft YaHei', system-ui, sans-serif;
   color: #1f2937;
   background: #f5f7fa;
   font-synthesis: none;
-  text-rendering: optimizeLegibility;
+  text-rendering: optimizelegibility;
   -webkit-font-smoothing: antialiased;
 }
+
 * {
   box-sizing: border-box;
 }
+
 body {
   margin: 0;
   min-width: 320px;
   overflow-x: hidden;
 }
+
 #root {
   min-height: 100vh;
 }

@@ -14,6 +14,7 @@ pnpm dev
 ```bash
 pnpm typecheck
 pnpm lint
+pnpm lint:css
 pnpm build
 ```
 
@@ -24,6 +25,7 @@ pnpm build
 | `pnpm dev`          | 启动 Vite 开发服务器         |
 | `pnpm typecheck`    | 检查所有 TypeScript 项目     |
 | `pnpm lint`         | 运行 Oxlint                  |
+| `pnpm lint:css`     | 运行 Stylelint（CSS/Less）   |
 | `pnpm build`        | 类型检查并构建生产包         |
 | `pnpm format`       | 使用 Prettier 格式化         |
 | `pnpm format:check` | 检查格式是否符合规范         |
@@ -55,6 +57,6 @@ src/
 - Zustand 只存放跨页面的 UI/会话状态；表单临时状态和服务端数据放在 feature hook/service 中。
 - 页面较重时使用 `lazy` + `Suspense`，并提供加载、空数据和错误状态。
 - commit 遵循 Conventional Commits，例如 `feat(inventory): add stock list`。
-- Husky 的 `commit-msg` 校验 commitlint，`pre-commit` 运行 lint-staged（格式化和 Oxlint）。
+- Husky 的 `commit-msg` 校验 commitlint，`pre-commit` 运行 lint-staged（格式化、Oxlint 和 Stylelint）。
 
 更完整的说明见 [docs/前端架构说明.md](./docs/前端架构说明.md)、[docs/接口与 Mock 说明.md](<./docs/接口与 Mock 说明.md>) 和 [docs/配置文件说明.md](./docs/配置文件说明.md)。

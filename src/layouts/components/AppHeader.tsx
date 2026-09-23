@@ -22,7 +22,7 @@ export function AppHeader() {
           onClick={toggleSidebar}
           aria-label={collapsed ? '展开侧边栏' : '收起侧边栏'}
         />
-        <Typography.Text className="header-context" type="secondary">
+        <Typography.Text className="header-context text-brand-600" type="secondary">
           企业库存管理 · 2025 年度
         </Typography.Text>
       </Space>

@@ -1,0 +1,8 @@
+# 与 .prettierignore / .oxlintrc.json 的忽略范围保持一致，
+# 防止编辑器 Stylelint 插件或全量扫描误入非源码目录。
+node_modules
+dist
+dist-ssr
+coverage
+public
+pnpm-lock.yaml

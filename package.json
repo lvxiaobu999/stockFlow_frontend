@@ -8,6 +8,8 @@
     "build": "tsc -b && vite build",
     "lint": "oxlint",
     "lint:fix": "oxlint --fix",
+    "lint:css": "stylelint \"src/**/*.{css,less}\"",
+    "lint:css:fix": "stylelint \"src/**/*.{css,less}\" --fix",
     "typecheck": "tsc -b --pretty false",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
@@ -20,11 +22,16 @@
       "prettier --write",
       "oxlint --fix"
     ],
-    "*.{json,css,md,yml,yaml}": [
+    "*.{css,less}": [
+      "stylelint --fix",
+      "prettier --write"
+    ],
+    "*.{json,md,yml,yaml}": [
       "prettier --write"
     ]
   },
   "dependencies": {
+    "@ant-design/cssinjs": "^2.1.2",
     "@ant-design/icons": "^6.3.4",
     "@tanstack/react-query": "^5.102.8",
     "antd": "^6.6.4",
@@ -42,7 +49,9 @@
     "@babel/core": "^7.29.7",
     "@commitlint/cli": "^21.2.2",
     "@commitlint/config-conventional": "^21.2.2",
+    "@dreamsicle.io/stylelint-config-tailwindcss": "^1.2.2",
     "@rolldown/plugin-babel": "^0.2.3",
+    "@tailwindcss/vite": "^4.3.3",
     "@types/babel__core": "^7.20.5",
     "@types/node": "^24.13.3",
     "@types/nprogress": "^0.2.3",
@@ -50,17 +59,18 @@
     "@types/react-dom": "^19.2.7",
     "@types/react-transition-group": "^4.4.12",
     "@vitejs/plugin-react": "^6.1.1",
-    "autoprefixer": "^10.6.0",
     "babel-plugin-react-compiler": "^1.0.0",
     "husky": "^9.1.7",
     "less": "^4.9.1",
     "lint-staged": "^17.5.1",
     "msw": "^2.15.0",
     "oxlint": "^1.81.0",
-    "postcss": "^8.5.28",
+    "postcss-less": "^6.0.0",
     "prettier": "^3.9.6",
     "prettier-plugin-tailwindcss": "^0.8.1",
-    "tailwindcss": "3.4.17",
+    "stylelint": "^17.15.0",
+    "stylelint-config-standard": "^40.0.0",
+    "tailwindcss": "^4.3.3",
     "typescript": "~6.0.2",
     "vite": "^8.3.0",
     "vitest": "^4.0.16"

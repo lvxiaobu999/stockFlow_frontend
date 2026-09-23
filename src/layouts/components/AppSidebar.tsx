@@ -11,9 +11,9 @@ const { Sider } = Layout
 
 /** 展开态图标尺寸（px）。SvgIcon 默认 1em 跟随字号，而 antd 给一级项图标合并
  * styles.itemIcon 时图标自身内联样式优先级更高，所以尺寸只能在生成 items 时显式传入。 */
-const MENU_ICON_SIZE = 20
+const MENU_ICON_SIZE = 24
 /** 折叠态图标放大到 20px，撑满 20x20 的圆形按钮。 */
-const COLLAPSED_MENU_ICON_SIZE = 20
+const COLLAPSED_MENU_ICON_SIZE = 24
 
 /** 把导航配置递归转换成 Ant Design Menu 需要的 items 结构。 */
 function toMenuItems(items: NavigationItem[], iconSize: number): MenuProps['items'] {
@@ -45,7 +45,7 @@ const expandedMenuStyles: MenuProps['styles'] = {
 
 /**
  * 折叠态菜单样式：一级项收敛为 40x40 的圆形按钮，隐藏文字只保留图标。
- * 分组标题在 antd 6.6.4 里没有语义插槽，其折叠样式由 App.css 的 .app-side-menu 规则兜底。
+ * 分组标题在 antd 6.6.4 里没有语义插槽，其折叠样式由 App.less 的 .app-side-menu 规则兜底。
  */
 const collapsedMenuStyles: MenuProps['styles'] = {
   root: { paddingInline: 12 },
@@ -118,7 +118,7 @@ export function AppSidebar() {
         <Menu
           theme="light"
           mode="inline"
-          // 语义插槽覆盖不到的部分（选中态渐变、分组标题样式）用该类名在 App.css 兜底。
+          // 语义插槽覆盖不到的部分（选中态渐变、分组标题样式）用该类名在 App.less 兜底。
           classNames={{ root: 'app-side-menu' }}
           styles={collapsed ? collapsedMenuStyles : expandedMenuStyles}
           selectedKeys={[selected]}

@@ -1,5 +1,6 @@
 import react, { reactCompilerPreset } from '@vitejs/plugin-react'
 import babel from '@rolldown/plugin-babel'
+import tailwindcss from '@tailwindcss/vite'
 import { dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { defineConfig } from 'vitest/config'
@@ -19,7 +20,8 @@ export default defineConfig(({ mode }) => {
   return {
     // 开发和生产环境都启用 React Compiler，以保持组件优化策略一致。
     // 后续增加 Vite 插件时请保持这里的插件顺序稳定。
-    plugins: [react(), babel({ presets: [reactCompilerPreset()] })],
+    // Tailwind v4 通过原生 Vite 插件编译（替代 v3 的 postcss + autoprefixer 链路）。
+    plugins: [react(), babel({ presets: [reactCompilerPreset()] }), tailwindcss()],
     resolve: {
       // 使用 @/* 作为应用导入别名，避免移动业务目录后出现脆弱的相对路径链。
       alias: {
