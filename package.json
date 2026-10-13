@@ -18,9 +18,12 @@
     "prepare": "husky"
   },
   "lint-staged": {
-    "*.{js,mjs,cjs,ts,tsx}": [
+    "!(*.config).{js,mjs,cjs,ts,tsx}": [
       "prettier --write",
       "oxlint --fix"
+    ],
+    "*.config.{js,mjs,cjs,ts,tsx}": [
+      "prettier --write"
     ],
     "*.{css,less}": [
       "stylelint --fix",
