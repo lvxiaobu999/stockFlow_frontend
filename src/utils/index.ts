@@ -1,4 +1,5 @@
 export { clamp } from './number'
+export { formatMoney } from './money'
 export { maskPhone } from './mask'
 export { formatDateTime, formatShortDateTime } from './datetime'
 export { downloadCsv, type CsvCell } from './csv'
