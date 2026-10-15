@@ -211,6 +211,31 @@
   cursor: pointer;
 }
 
+/* 顶栏用户下拉触发器（AuthHeaderUser）：原生 button 重置为无边框胶囊，
+   保证键盘 Tab 可达，悬停给浅底色反馈。 */
+.header-user {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 10px;
+  border: 0;
+  border-radius: 18px;
+  background: transparent;
+  cursor: pointer;
+}
+
+.header-user:hover {
+  background: #f5f6f8;
+}
+
+/* 长姓名限制单行省略，避免挤压页头右侧布局。 */
+.header-user-name {
+  max-width: 120px;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
 /* ---------------------------------------------------------------------------
    6. 内容区：全页唯一的滚动容器
    ------------------------------------------------------------------------ */
@@ -339,8 +364,194 @@
 }
 
 /* ---------------------------------------------------------------------------
-   9. 响应式（<= 768px 平板/手机）
+   9. 登录页（LoginPage，独立于壳层的全屏双栏布局）
    ------------------------------------------------------------------------ */
+
+/* 全屏双栏：左侧品牌渐变区 + 右侧登录卡区；窄屏下品牌区整体隐藏。 */
+.login-page {
+  min-height: 100vh;
+  display: flex;
+  background: #fff;
+}
+
+/* 品牌区：品牌色对角渐变（与 .brand-mark 同源），白字内容垂直居中。 */
+.login-brand {
+  flex: 1 1 55%;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 64px 72px;
+  background: linear-gradient(160deg, #35101d 0%, #501529 55%, #7a2d45 100%);
+  color: #fff;
+}
+
+/* 顶部小徽标：半透明白底胶囊，点明系统定位。 */
+.login-brand-badge {
+  align-self: flex-start;
+  padding: 4px 14px;
+  border: 1px solid rgb(255 255 255 / 35%);
+  border-radius: 999px;
+  background: rgb(255 255 255 / 10%);
+  font-size: 13px;
+  letter-spacing: 2px;
+}
+
+/* 主标题与说明文案：限制行宽，避免宽屏下拉成超长行。 */
+.login-brand-title {
+  max-width: 520px;
+  margin: 28px 0 0;
+  font-size: 34px;
+  font-weight: 700;
+  line-height: 1.4;
+}
+
+.login-brand-desc {
+  max-width: 480px;
+  margin: 18px 0 0;
+  color: rgb(255 255 255 / 78%);
+  font-size: 15px;
+  line-height: 1.9;
+}
+
+/* 卖点列表：去掉默认圆点，改用品牌区统一的半透明白点。 */
+.login-brand-points {
+  max-width: 480px;
+  margin: 28px 0 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 14px;
+  color: rgb(255 255 255 / 88%);
+  font-size: 14px;
+}
+
+.login-brand-points li {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+}
+
+.login-brand-points li::before {
+  content: '';
+  flex: 0 0 6px;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: rgb(255 255 255 / 60%);
+}
+
+/* 右侧登录卡区：垂直居中，纵向排列卡片与页脚说明。 */
+.login-panel {
+  flex: 1 1 45%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 48px 32px;
+}
+
+/* 登录卡片：白底浮层；宽度收口保证移动端不顶满。 */
+.login-card {
+  width: min(400px, 100%);
+  padding: 40px 36px 28px;
+  border: 1px solid #edf0f4;
+  border-radius: 12px;
+  background: #fff;
+  box-shadow: 0 12px 40px rgb(15 23 42 / 8%);
+}
+
+/* 卡片头部：Logo 方块复用侧栏品牌色渐变，与壳层视觉呼应。 */
+.login-card-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 28px;
+}
+
+.login-card-mark {
+  width: 44px;
+  height: 44px;
+  flex: 0 0 44px;
+  display: grid;
+  place-items: center;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #7a2d45, #501529);
+  color: #fff;
+  font-size: 26px;
+  font-weight: 800;
+}
+
+.login-card-title {
+  margin: 0;
+  font-size: 20px;
+  letter-spacing: 0.3px;
+}
+
+.login-card-subtitle {
+  margin: 2px 0 0;
+  color: #64748b;
+  font-size: 12px;
+}
+
+/* 输入框前缀图标：次级文字色，避免与占位文案抢视觉。 */
+.login-input-icon {
+  color: #b6bdca;
+}
+
+/* 提交行与底部提示：压掉 Form.Item 默认下边距，提示居中。 */
+.login-submit-item {
+  margin-bottom: 12px;
+}
+
+.login-hint {
+  display: block;
+  text-align: center;
+  font-size: 12px;
+}
+
+/* 卡片下方合规范说明。 */
+.login-footer {
+  margin: 24px 0 0;
+  color: #94a3b8;
+  font-size: 12px;
+}
+
+/* ---------------------------------------------------------------------------
+   10. 响应式（平板 / 手机）
+   ------------------------------------------------------------------------ */
+
+/* 登录页品牌区在 ≤992px 隐藏，只保留登录卡，避免双栏挤压。 */
+@media (width <= 992px) {
+  .login-brand {
+    display: none;
+  }
+}
+
+/* ≤480px 时收窄登录区留白与卡片内边距，保证 320px 宽度可用。 */
+@media (width <= 480px) {
+  .login-panel {
+    padding: 24px 16px;
+  }
+
+  .login-card {
+    padding: 28px 20px 20px;
+  }
+}
+
+/* 收窄内容区与页头的左右留白；隐藏页头上下文文字，给操作图标腾出空间。 */
+@media (width <= 768px) {
+  .app-content {
+    padding: 16px;
+  }
+
+  .app-header {
+    padding: 0 16px;
+  }
+
+  .header-context {
+    display: none;
+  }
+}
 
 /* 收窄内容区与页头的左右留白；隐藏页头上下文文字，给操作图标腾出空间。 */
 @media (width <= 768px) {
