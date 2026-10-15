@@ -8,8 +8,11 @@
 /** 用户类型：staff 为内部员工，supplier 为供应商账号（登录后应进入供应商门户）。 */
 export type UserType = 'staff' | 'supplier'
 
-/** 启用状态：1=启用 0=停用，与后端数据库 tinyint 保持一致。 */
-export type EnableStatus = 1 | 0
+// 启用状态（EnableStatus）为跨领域基础类型，真身在 @/types/common；
+// 此处保留 re-export，既有 `@/features/system/types` 的导入无需改动。
+import type { EnableStatus } from '@/types/common'
+
+export type { EnableStatus }
 
 /** 角色简要信息，用于用户表格的角色标签与表单回显。 */
 export interface RoleBrief {
@@ -167,4 +170,12 @@ export interface LogFilterOptions {
   operators: string[]
   /** 模块选项，value 为模块编码。 */
   modules: { value: string; label: string }[]
+}
+
+/** 内部员工下拉选项（/system/user/staff-options 返回），仓库负责人等引用场景使用。 */
+export interface StaffOption {
+  id: string
+  name: string
+  /** 部门，辅助辨识同名员工。 */
+  department?: string
 }

@@ -1,4 +1,3 @@
-export { StatusTag } from './components/StatusTag'
 export { LogFilterBar, type LogFilters } from './components/log/LogFilterBar'
 export { LogTable } from './components/log/LogTable'
 export { RoleFilterBar, type RoleFilters } from './components/role/RoleFilterBar'
@@ -9,7 +8,7 @@ export { UserFilterBar, type UserFilters } from './components/user/UserFilterBar
 export { UserFormDrawer } from './components/user/UserFormDrawer'
 export { UserTable } from './components/user/UserTable'
 export { useOperationLogs, useLogFilterOptions, operationLogQueryKeys } from './hooks/useOperationLogs'
-export { useUsers, userQueryKeys } from './hooks/useUsers'
+export { useUsers, useStaffOptions, userQueryKeys } from './hooks/useUsers'
 export { useUserMutations } from './hooks/useUserMutations'
 export { useRoleMutations } from './hooks/useRoleMutations'
 export {

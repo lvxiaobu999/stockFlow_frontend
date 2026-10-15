@@ -1,4 +1,5 @@
 export { FreshnessTag, PageHeader } from './PageHeader'
 export { StatCard } from './StatCard'
+export { StatusTag } from './StatusTag'
 export { SvgIcon } from './SvgIcon'
 export type { SvgIconProps } from './SvgIcon'
