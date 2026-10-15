@@ -1,2 +1,6 @@
 export { dashboardMock } from './data/dashboard'
+export { usersMock } from './data/users'
+export { roleMock } from './data/roles'
+export { permissionTreeMock } from './data/roles'
+export { operationLogsMock } from './data/operation-logs'
 export { handlers } from './handlers'
