@@ -10,6 +10,9 @@ import type { OperationLogRecord } from '@/features/system/types'
 /** 日志模块字典：options 下拉与日志记录共用，value 为模块编码。 */
 export const LOG_MODULES = [
   { value: 'system', label: '系统管理' },
+  { value: 'product', label: '商品管理' },
+  { value: 'supplier', label: '供应商管理' },
+  { value: 'inventory', label: '仓库管理' },
   { value: 'purchase', label: '采购管理' },
   { value: 'approval', label: '审批中心' },
   { value: 'receiving', label: '收货与验收' },

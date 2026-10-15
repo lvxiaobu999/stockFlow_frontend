@@ -89,6 +89,10 @@ export const rolePermissionCodes: Record<string, string[]> = {
     'menu:product:category',
     'menu:product:list',
     'menu:supplier:list',
+    // 供应商档案维护：采购员可新建/编辑/启停（需求：供应商=管理员/采购员）。
+    'supplier:list:create',
+    'supplier:list:update',
+    'supplier:list:toggle-status',
     'menu:receiving:receipt',
     'menu:receiving:inspection',
     'menu:inventory:current-stock',
@@ -110,6 +114,10 @@ export const rolePermissionCodes: Record<string, string[]> = {
     'menu:receiving:receipt',
     'menu:receiving:inspection',
     'menu:inventory:warehouse',
+    // 仓库档案维护：仓库人员可新建/编辑/启停（需求：仓库=管理员/仓库人员）。
+    'inventory:warehouse:create',
+    'inventory:warehouse:update',
+    'inventory:warehouse:toggle-status',
     'menu:inventory:current-stock',
     'menu:inventory:stock-transactions',
     'menu:inventory:stock-alert',
@@ -141,7 +149,16 @@ export const permissionTreeMock: PermissionNode[] = [
     title: '库存管理',
     type: 'menu',
     children: [
-      { key: 'menu:inventory:warehouse', title: '仓库列表', type: 'menu' },
+      {
+        key: 'menu:inventory:warehouse',
+        title: '仓库列表',
+        type: 'menu',
+        children: [
+          { key: 'inventory:warehouse:create', title: '新建', type: 'button' },
+          { key: 'inventory:warehouse:update', title: '编辑', type: 'button' },
+          { key: 'inventory:warehouse:toggle-status', title: '停用 / 启用', type: 'button' },
+        ],
+      },
       { key: 'menu:inventory:current-stock', title: '当前库存', type: 'menu' },
       { key: 'menu:inventory:stock-transactions', title: '库存流水', type: 'menu' },
       {
@@ -157,8 +174,28 @@ export const permissionTreeMock: PermissionNode[] = [
     title: '商品管理',
     type: 'menu',
     children: [
-      { key: 'menu:product:category', title: '商品分类', type: 'menu' },
-      { key: 'menu:product:list', title: '商品列表', type: 'menu' },
+      {
+        key: 'menu:product:category',
+        title: '商品分类',
+        type: 'menu',
+        children: [
+          { key: 'product:category:create', title: '新建', type: 'button' },
+          { key: 'product:category:update', title: '编辑', type: 'button' },
+          { key: 'product:category:delete', title: '删除', type: 'button' },
+          { key: 'product:category:toggle-status', title: '停用 / 启用', type: 'button' },
+        ],
+      },
+      {
+        key: 'menu:product:list',
+        title: '商品列表',
+        type: 'menu',
+        children: [
+          { key: 'product:list:create', title: '新建', type: 'button' },
+          { key: 'product:list:update', title: '编辑', type: 'button' },
+          { key: 'product:list:toggle-status', title: '停用 / 启用', type: 'button' },
+          { key: 'product:list:export', title: '导出 Excel', type: 'button' },
+        ],
+      },
     ],
   },
   {
@@ -230,7 +267,19 @@ export const permissionTreeMock: PermissionNode[] = [
     key: 'group:supplier',
     title: '供应商管理',
     type: 'menu',
-    children: [{ key: 'menu:supplier:list', title: '供应商列表', type: 'menu' }],
+    children: [
+      {
+        key: 'menu:supplier:list',
+        title: '供应商列表',
+        type: 'menu',
+        children: [
+          { key: 'supplier:list:create', title: '新建', type: 'button' },
+          { key: 'supplier:list:update', title: '编辑', type: 'button' },
+          { key: 'supplier:list:toggle-status', title: '停用 / 启用', type: 'button' },
+          { key: 'supplier:list:export', title: '导出 Excel', type: 'button' },
+        ],
+      },
+    ],
   },
   {
     key: 'group:payment',

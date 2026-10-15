@@ -35,3 +35,17 @@ export function useUsers(params: UserListParams): UsersQuery {
     refetch: query.refetch,
   }
 }
+
+/** 启用内部员工下拉（仓库负责人等引用场景）；静态数据，长时间缓存。 */
+export function useStaffOptions() {
+  const query = useQuery({
+    queryKey: [...userQueryKeys.all, 'staff-options'] as const,
+    queryFn: ({ signal }) => userService.getStaffOptions(signal),
+    staleTime: 5 * 60 * 1000,
+  })
+  return {
+    data: query.data ?? null,
+    isLoading: query.isPending,
+    error: query.error,
+  }
+}

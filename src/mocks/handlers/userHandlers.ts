@@ -4,7 +4,7 @@ import { getMockSession } from '@/mocks/data/auth'
 import { DEFAULT_INITIAL_PASSWORD } from '@/mocks/data/auth'
 import { appendLog } from '@/mocks/data/operation-logs'
 import { toRoleBrief } from '@/mocks/data/roles'
-import { findUserByUsername, nextUserId, usersMock } from '@/mocks/data/users'
+import { findUserByUsername, getStaffUsers, nextUserId, usersMock } from '@/mocks/data/users'
 import { appendSystemLog } from '@/mocks/handlers/shared'
 import { paginate } from '@/mocks/pagination'
 import type {
@@ -45,6 +45,13 @@ function filterUsers(params: UserListParams): UserRecord[] {
 
 /** 用户管理接口：分页查询、新建、编辑、重置密码与启停。 */
 export const userHandlers = [
+  http.get('*/system/user/staff-options', async () => {
+    await delay(280)
+    if (!getMockSession()) return httpError(401, '登录已过期，请重新登录')
+    // 仓库负责人等「选人」下拉：仅启用状态的内部员工。
+    return ok(getStaffUsers().map((user) => ({ id: user.id, name: user.name, department: user.department })))
+  }),
+
   http.get('*/system/user/page', async ({ request }) => {
     await delay(280)
     if (!getMockSession()) return httpError(401, '登录已过期，请重新登录')

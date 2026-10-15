@@ -1,6 +1,7 @@
 import type {
   CreateUserPayload,
   EnableStatus,
+  StaffOption,
   UpdateUserPayload,
   UserListParams,
   UserRecord,
@@ -10,6 +11,11 @@ import { request } from '@/services/httpClient'
 
 /** 用户管理服务：账号只停用不删除；登录账号创建后不可修改（更新载荷不含 username）。 */
 export const userService = {
+  /** 内部员工下拉选项（仓库负责人等引用场景）：仅启用账号。 */
+  async getStaffOptions(signal?: AbortSignal): Promise<StaffOption[]> {
+    return request<StaffOption[]>('/system/user/staff-options', { signal })
+  },
+
   /** 分页查询用户；返回结构遵循 PaginatedData 约定（total 为总页数）。 */
   async getPage(params: UserListParams, signal?: AbortSignal): Promise<PaginatedData<UserRecord>> {
     return request<PaginatedData<UserRecord>>('/system/user/page', { params, signal })

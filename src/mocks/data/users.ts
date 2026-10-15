@@ -205,6 +205,11 @@ export function getRoleUserCount(roleCode: string): number {
   return usersMock.filter((user) => user.roles.some((role) => role.code === roleCode)).length
 }
 
+/** 启用状态的内部员工列表：仓库负责人等「选人」下拉场景使用。 */
+export function getStaffUsers(): UserRecord[] {
+  return usersMock.filter((user) => user.userType === 'staff' && user.status === 1)
+}
+
 /** 按用户名查找用户（登录校验与账号唯一性检查共用）。 */
 export function findUserByUsername(username: string): UserRecord | undefined {
   return usersMock.find((user) => user.username === username)
