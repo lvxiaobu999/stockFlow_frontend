@@ -90,3 +90,59 @@ export const productQueryKeys = {
 ### 导出 Excel 的过渡实现
 
 操作日志的「导出 Excel」目前是前端把**当前页**数据导出为 CSV（`src/utils/csv.ts`，UTF-8 BOM 兼容 Excel，RFC 4180 转义）。后端提供导出接口后替换 `OperationLogPage` 里的 `handleExport` 即可，页面结构不变。
+
+## 「基础资料」模块契约（已实现）
+
+覆盖四个子域：**商品分类 / 商品档案 / 供应商档案 / 仓库档案**。页面模式：分类页为「左树 + 右商品联动表」，商品与供应商为「列表 / 表单 / 详情」三态页内切换，仓库为「列表 / 表单」两态。编码一律**服务端生成、创建后不可修改**，新建表单展示实时预取的下一编码。
+
+### 接口一览
+
+| Method   | Path                                                            | 说明（错误码为业务 code）                                                                                  |
+| -------- | --------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------- |
+| GET      | `/product/category/next-code?parentId=`                         | 预览将分配的分类编码（随所选上级变化；parentId 空 = 顶级）                                                 |
+| GET/POST | `/product/category/list`、`/product/category`                   | 全量分类扁平列表（树由前端构建）/ 新建（4002 同级重名；4104 上级不存在、已停用或层级已满）                 |
+| PUT      | `/product/category/:id`、`/:id/status`                          | 编辑（编码不可改；上级不可选自身/子孙 4104）/ 停用启用                                                     |
+| DELETE   | `/product/category/:id`                                         | 删除（4102 存在子分类；4103 子树内存在商品）                                                               |
+| GET      | `/product/next-code`、`/product/page`                           | 商品编码预取 / 分页（keyword/categoryId/status/stockBelowSafety；**categoryId 匹配该分类及其全部子分类**） |
+| POST/PUT | `/product`、`/product/:id`、`/:id/status`                       | 新建（4203 所属分类停用或不存在；初始库存 0）/ 编辑（编码不可改）/ 停用启用                                |
+| GET      | `/product/:id`、`/:id/stock-summary`、`/:id/stock-transactions` | 详情 / 库存汇总（按仓库）/ 最近流水——**库存模块落地前的演示契约**                                          |
+| GET/POST | `/supplier/page`、`/supplier`                                   | 分页（keyword/status/inTransit）/ 新建（4302 名称重复；不联动开户）                                        |
+| PUT      | `/supplier/:id`、`/:id/status`                                  | 编辑（编码不可改）/ 停用启用（无删除接口，预留 4303）                                                      |
+| GET      | `/supplier/:id`、`/:id/recent-orders`                           | 详情 / 近 5 笔订单——**采购模块落地前的演示契约**                                                           |
+| GET/POST | `/inventory/warehouse/page`、`/inventory/warehouse`             | 分页（keyword/status）/ 新建（4402 名称重复；初始统计为 0）                                                |
+| PUT      | `/inventory/warehouse/:id`、`/:id/status`                       | 编辑（编码不可改）/ 停用启用（**4403 总仓不允许停用**）                                                    |
+| GET      | `/system/user/staff-options`                                    | 启用内部员工下拉（仓库负责人选择），`useStaffOptions` 缓存 5 分钟                                          |
+
+分页口径同上（`data.total` 为总页数）。
+
+### 错误码分段
+
+- `41xx` 分类：4101 不存在、4102 有子分类、4103 有商品、4104 上级不合法；
+- `42xx` 商品：4201 不存在、4203 所属分类停用/不存在；
+- `43xx` 供应商：4301 不存在、4302 名称重复；
+- `44xx` 仓库：4401 不存在、4402 名称重复、4403 总仓不可停用；
+- `40xx` 通用：4001 参数缺失、4002 重复。
+
+### 权限码
+
+- 分类：`product:category:{create,update,delete,toggle-status}`（仅管理员预置）；
+- 商品：`product:list:{create,update,toggle-status,export}`（仅管理员预置）；
+- 供应商：`supplier:list:{create,update,toggle-status,export}`（采购员预置前三个）；
+- 仓库：`inventory:warehouse:{create,update,toggle-status}`（仓管员预置）；
+- 商品无删除入口（只停用）；供应商、仓库同样无删除入口。
+
+### 演示数据约定
+
+- 分类 18 节点、层级段式编码（`010000` → `010100` → `010101`），`铅笔` 为可删除的停用演示节点；
+- 商品 30 条：8 条库存预警、3 条停用，覆盖 10 个分类与 个/箱/盒/提/套 五种单位；
+- 供应商 16 家：14 家开通门户账号（与用户表供应商账号按名称一对一关联）、3 家停用；
+- 仓库 5 个：总仓（内置、不可停用）+ 上海/北京/广州 + 深圳仓（停用、零库存）；
+- 商品「库存汇总/最近流水」、供应商「近 5 笔订单」、仓库统计三列为**演示契约**，由库存、采购模块兑现后替换。
+
+### 需求偏差记录
+
+1. 仓库字段按原型扩表（负责人/联系电话/地址/统计列），数据库设计仅 code/name/status/remark 四字段；
+2. 商品规格、采购参考价按原型必填（数据库允许 NULL）；编码格式采用数据库建议（分类段式 / `SP`+日期+流水 / `SUP`+流水 / `WH`+流水）；
+3. 商品主图以 base64 存内存，**仅会话期内存活**，刷新后丢失，等待后端文件上传接口；
+4. 分类/商品写操作仅管理员可用（无「商品管理员」预置角色）；总仓不可停用为前端约定，待后端最终确认；
+5. 商品列表 `categoryId` 筛选语义为「所选分类及其全部子分类」，与分类树 productCount 的子树口径一致。
