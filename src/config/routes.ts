@@ -40,7 +40,7 @@ export const routeMeta = {
   systemOperationLog: {
     path: '/system/operation-log',
     title: '操作日志',
-    description: '查询关键操作的审计记录。',
+    description: '查询关键操作的审计记录（只读，保留 180 天）。',
     module: 'system',
   },
 
@@ -298,3 +298,15 @@ export const leafRouteKeys = [
 
 /** 叶子路由 key 的联合类型，用于在注册表中做编译期完整性约束。 */
 export type LeafRouteKey = (typeof leafRouteKeys)[number]
+
+/**
+ * 登录页路径。独立于 AppLayout 壳层渲染（无侧边栏/顶栏），也不进入
+ * routeMeta 注册表——它不是侧边栏导航页，仅由路由守卫在未登录时跳入。
+ */
+export const LOGIN_PATH = '/login'
+
+/**
+ * 个人中心路径。位于壳层内，但只从顶栏头像下拉进入，不占用侧边栏菜单位，
+ * 因此同样不进入 routeMeta / leafRouteKeys。
+ */
+export const PROFILE_PATH = '/profile'

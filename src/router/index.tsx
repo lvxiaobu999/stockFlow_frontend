@@ -2,12 +2,19 @@ import { Suspense, lazy } from 'react'
 import type { ComponentType, LazyExoticComponent } from 'react'
 import { Navigate, Route, Routes } from 'react-router-dom'
 import { RouteFallback } from '@/components/feedback/RouteFallback'
-import { leafRouteKeys, routeMeta, type LeafRouteKey } from '@/config/routes'
+import { leafRouteKeys, routeMeta, LOGIN_PATH, PROFILE_PATH, type LeafRouteKey } from '@/config/routes'
+import { RequireAuth } from '@/features/auth/components/RequireAuth'
+import { RequirePermission } from '@/features/auth/components/RequirePermission'
+import { getMenuPermissionCode } from '@/features/auth/utils/permissions'
 import AppLayout from '@/layouts/AppLayout'
 import PlaceholderPage from '@/pages/PlaceholderPage'
 
 // 首页工作台单独懒加载，减少首屏主包体积。
 const DashboardPage = lazy(() => import('@/pages/DashboardPage'))
+// 登录页在壳层之外独立渲染（无侧边栏/顶栏），同样走懒加载。
+const LoginPage = lazy(() => import('@/pages/auth/LoginPage'))
+// 个人中心在壳层内，但只从顶栏头像下拉进入，不占用侧边栏菜单。
+const ProfilePage = lazy(() => import('@/pages/profile/ProfilePage'))
 
 /**
  * 叶子路由 key -> 懒加载页面组件的注册表。
@@ -51,19 +58,41 @@ const pageComponents = {
   receivingInspection: lazy(() => import('@/pages/receiving/InspectionPage')),
 } satisfies Record<LeafRouteKey, LazyExoticComponent<ComponentType>>
 
-/** 应用路由表：所有页面都嵌套在 AppLayout 壳层内，共享侧边栏与顶栏。 */
+/**
+ * 应用路由表：
+ * - /login 独立于壳层渲染；
+ * - 其余页面嵌套在 AppLayout 内，整体由 RequireAuth 守卫认证态；
+ * - 每个叶子页面再包一层 RequirePermission（菜单权限码由路径推导），
+ *   兜住「直接输入 URL」的越权访问；404 兜底页不做权限控制。
+ */
 export default function AppRoutes() {
   return (
     <Routes>
-      <Route element={<AppLayout />}>
+      <Route
+        path={LOGIN_PATH}
+        element={
+          <Suspense fallback={<RouteFallback />}>
+            <LoginPage />
+          </Suspense>
+        }
+      />
+      <Route
+        element={
+          <RequireAuth>
+            <AppLayout />
+          </RequireAuth>
+        }
+      >
         {/* 根路径重定向到工作台，保证直接访问 "/" 也能落到首页。 */}
         <Route path="/" element={<Navigate to={routeMeta.dashboard.path} replace />} />
         <Route
           path={routeMeta.dashboard.path}
           element={
-            <Suspense fallback={<RouteFallback />}>
-              <DashboardPage />
-            </Suspense>
+            <RequirePermission code={getMenuPermissionCode(routeMeta.dashboard.path)}>
+              <Suspense fallback={<RouteFallback />}>
+                <DashboardPage />
+              </Suspense>
+            </RequirePermission>
           }
         />
         {/* 其余叶子路由统一由 leafRouteKeys 驱动生成，逐条注册对应懒加载页面。 */}
@@ -75,13 +104,24 @@ export default function AppRoutes() {
               key={meta.path}
               path={meta.path}
               element={
-                <Suspense fallback={<RouteFallback />}>
-                  <Page />
-                </Suspense>
+                <RequirePermission code={getMenuPermissionCode(meta.path)}>
+                  <Suspense fallback={<RouteFallback />}>
+                    <Page />
+                  </Suspense>
+                </RequirePermission>
               }
             />
           )
         })}
+        {/* 个人中心：登录即可访问，不挂菜单权限码（PROFILE_PATH 不在侧边栏注册表内）。 */}
+        <Route
+          path={PROFILE_PATH}
+          element={
+            <Suspense fallback={<RouteFallback />}>
+              <ProfilePage />
+            </Suspense>
+          }
+        />
         {/* 兜底 404，避免未知路径报错。 */}
         <Route
           path="*"

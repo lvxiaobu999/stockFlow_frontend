@@ -1,15 +1,16 @@
-import { BellOutlined, MenuFoldOutlined, MenuUnfoldOutlined, UserOutlined } from '@ant-design/icons'
-import { Avatar, Badge, Button, Layout, Space, Typography } from 'antd'
+import { BellOutlined, MenuFoldOutlined, MenuUnfoldOutlined } from '@ant-design/icons'
+import { Button, Layout, Space, Tooltip, Typography } from 'antd'
+import { AuthHeaderUser } from '@/features/auth/components/AuthHeaderUser'
 import { useAppStore } from '@/stores/appStore'
-import { useAuthStore } from '@/stores/authStore'
 
 const { Header } = Layout
 
-/** 顶部栏：折叠侧边栏、通知入口与当前登录用户信息。 */
+/**
+ * 顶部栏：折叠侧边栏、通知入口（占位）与当前登录用户下拉。
+ * 用户身份来自认证会话（/auth/me），个人中心与退出登录入口在 AuthHeaderUser 内。
+ */
 export function AppHeader() {
-  // 从两个 store 中按需订阅最小粒度状态，避免组件跟随无关字段重复渲染。
-  const currentUser = useAuthStore((state) => state.currentUser)
-  const unreadNotifications = useAuthStore((state) => state.unreadNotifications)
+  // 只订阅折叠状态，避免跟随无关字段重复渲染。
   const collapsed = useAppStore((state) => state.sidebarCollapsed)
   const toggleSidebar = useAppStore((state) => state.toggleSidebar)
 
@@ -27,13 +28,11 @@ export function AppHeader() {
         </Typography.Text>
       </Space>
       <Space size="large">
-        <Badge count={unreadNotifications} size="small">
-          <BellOutlined className="header-icon" aria-label={`通知 ${unreadNotifications} 条`} />
-        </Badge>
-        <Space>
-          <Avatar size="small" icon={<UserOutlined />} />
-          <Typography.Text strong>{currentUser?.name ?? '未登录'}</Typography.Text>
-        </Space>
+        {/* 通知中心尚未实现，先作为占位入口；有未读数据后替换为 Badge。 */}
+        <Tooltip title="通知中心建设中">
+          <BellOutlined className="header-icon" aria-label="通知" />
+        </Tooltip>
+        <AuthHeaderUser />
       </Space>
     </Header>
   )

@@ -1,26 +1,28 @@
 import { create } from 'zustand'
-
-export interface CurrentUser {
-  id: string
-  name: string
-  role: string
-}
+import type { AuthSession, CurrentUser } from '@/features/auth/types'
 
 interface AuthState {
+  /** 当前登录用户；null 表示未登录（处于登录页或会话尚未恢复）。 */
   currentUser: CurrentUser | null
-  unreadNotifications: number
-  setCurrentUser: (user: CurrentUser | null) => void
-  setUnreadNotifications: (count: number) => void
+  /** 当前用户的权限码集合（菜单码 + 按钮码，'*' 为全权）；随会话恢复写入。 */
+  permissions: string[]
+  /** 登录成功或 /auth/me 恢复成功后写入完整会话，是本 store 的唯一写入口。 */
+  setSession: (session: AuthSession) => void
+  /** 清空会话：退出登录或会话过期时调用。 */
   clearSession: () => void
 }
 
-/** 内存会话状态。敏感凭证不会写入 localStorage。 */
+/**
+ * 跨路由的登录会话状态。
+ *
+ * 只保存用户信息与权限码等非敏感数据；凭证由 Cookie 会话维持，
+ * 不写入 localStorage。刷新页面后的会话恢复由 features/auth 的
+ * useAuthSession 引导查询完成。
+ */
 export const useAuthStore = create<AuthState>()((set) => ({
-  // 占位登录态：接入真实鉴权后由登录流程写入，不要在此硬编码。
-  currentUser: { id: 'demo-user', name: '管理员', role: '系统管理员' },
-  // 占位通知数：后续接入通知接口后由服务端返回。
-  unreadNotifications: 3,
-  setCurrentUser: (currentUser) => set({ currentUser }),
-  setUnreadNotifications: (unreadNotifications) => set({ unreadNotifications }),
-  clearSession: () => set({ currentUser: null, unreadNotifications: 0 }),
+  currentUser: null,
+  permissions: [],
+  // AuthSession 的用户字段名为 user，store 内统一叫 currentUser（对外语义更直白）。
+  setSession: ({ user, permissions }) => set({ currentUser: user, permissions }),
+  clearSession: () => set({ currentUser: null, permissions: [] }),
 }))

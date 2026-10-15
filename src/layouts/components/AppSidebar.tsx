@@ -1,10 +1,12 @@
 import type { MenuProps } from 'antd'
-import { cloneElement, isValidElement, type ReactElement } from 'react'
+import { cloneElement, isValidElement, useMemo, type ReactElement } from 'react'
 import { ConfigProvider, Layout, Menu } from 'antd'
 import { Link, useLocation } from 'react-router-dom'
 import { appEnv } from '@/config/env'
 import { getNavigationParentKey, navigationItems, type NavigationItem } from '@/config/navigation'
+import { filterNavigationByPermissions } from '@/features/auth/utils/permissions'
 import { useAppStore } from '@/stores/appStore'
+import { useAuthStore } from '@/stores/authStore'
 import type { SvgIconProps } from '@/components/common/SvgIcon'
 
 const { Sider } = Layout
@@ -80,11 +82,14 @@ const collapsedMenuStyles: MenuProps['styles'] = {
 /** 侧边栏：品牌区、可折叠导航菜单，以及响应式断点下的自动收起。 */
 export function AppSidebar() {
   const collapsed = useAppStore((state) => state.sidebarCollapsed)
+  const permissions = useAuthStore((state) => state.permissions)
   const location = useLocation()
   // 根路径没有对应菜单项，映射到工作台，保证刷新首页时高亮正确。
   const selected = location.pathname === '/' ? '/dashboard' : location.pathname
   // 反查当前路径所属的一级分组，用于首次加载时展开正确的菜单分组。
   const parentKey = getNavigationParentKey(location.pathname)
+  // 菜单按权限过滤：叶子无权限剔除，分组子级全空时整组隐藏（admin 持 '*' 全可见）。
+  const visibleItems = useMemo(() => filterNavigationByPermissions(navigationItems, permissions), [permissions])
 
   return (
     <ConfigProvider
@@ -123,7 +128,7 @@ export function AppSidebar() {
           styles={collapsed ? collapsedMenuStyles : expandedMenuStyles}
           selectedKeys={[selected]}
           defaultOpenKeys={parentKey ? [parentKey] : []}
-          items={toMenuItems(navigationItems, collapsed ? COLLAPSED_MENU_ICON_SIZE : MENU_ICON_SIZE)}
+          items={toMenuItems(visibleItems, collapsed ? COLLAPSED_MENU_ICON_SIZE : MENU_ICON_SIZE)}
           /* triggerSubMenuAction='click' */
         />
         {!collapsed ? (
