@@ -45,21 +45,21 @@ function filterUsers(params: UserListParams): UserRecord[] {
 
 /** 用户管理接口：分页查询、新建、编辑、重置密码与启停。 */
 export const userHandlers = [
-  http.get('*/system/user/staff-options', async () => {
+  http.get('*/api/system/user/staff-options', async () => {
     await delay(280)
     if (!getMockSession()) return httpError(401, '登录已过期，请重新登录')
     // 仓库负责人等「选人」下拉：仅启用状态的内部员工。
     return ok(getStaffUsers().map((user) => ({ id: user.id, name: user.name, department: user.department })))
   }),
 
-  http.get('*/system/user/page', async ({ request }) => {
+  http.get('*/api/system/user/page', async ({ request }) => {
     await delay(280)
     if (!getMockSession()) return httpError(401, '登录已过期，请重新登录')
     const params = parseParams(new URL(request.url))
     return ok(paginate(filterUsers(params), params.current, params.pageSize))
   }),
 
-  http.post('*/system/user', async ({ request }) => {
+  http.post('*/api/system/user', async ({ request }) => {
     await delay(280)
     if (!getMockSession()) return httpError(401, '登录已过期，请重新登录')
     const body = (await request.json()) as Partial<CreateUserPayload>
@@ -90,7 +90,7 @@ export const userHandlers = [
     return ok(record)
   }),
 
-  http.put('*/system/user/:id', async ({ request, params }) => {
+  http.put('*/api/system/user/:id', async ({ request, params }) => {
     await delay(280)
     if (!getMockSession()) return httpError(401, '登录已过期，请重新登录')
     const record = usersMock.find((user) => user.id === params.id)
@@ -114,7 +114,7 @@ export const userHandlers = [
     return ok(record)
   }),
 
-  http.put('*/system/user/:id/password', async ({ request, params }) => {
+  http.put('*/api/system/user/:id/password', async ({ request, params }) => {
     await delay(280)
     const session = getMockSession()
     if (!session) return httpError(401, '登录已过期，请重新登录')
@@ -127,7 +127,7 @@ export const userHandlers = [
     return ok(null)
   }),
 
-  http.put('*/system/user/:id/status', async ({ request, params }) => {
+  http.put('*/api/system/user/:id/status', async ({ request, params }) => {
     await delay(280)
     const session = getMockSession()
     if (!session) return httpError(401, '登录已过期，请重新登录')

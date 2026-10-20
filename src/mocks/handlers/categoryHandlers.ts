@@ -43,7 +43,7 @@ function hasSiblingNameDuplicate(name: string, parentId: string | null, excludeI
 
 /** 商品分类接口：编码预取、全量列表、新建、编辑、启停与删除。 */
 export const categoryHandlers = [
-  http.get('*/product/category/next-code', async ({ request }) => {
+  http.get('*/api/product/category/next-code', async ({ request }) => {
     await delay(280)
     if (!getMockSession()) return httpError(401, '登录已过期，请重新登录')
     // 按所选上级预览将分配的编码；parentId 为空表示顶级。
@@ -51,14 +51,14 @@ export const categoryHandlers = [
     return ok(generateCategoryCode(parentId ? parentId : null))
   }),
 
-  http.get('*/product/category/list', async () => {
+  http.get('*/api/product/category/list', async () => {
     await delay(280)
     if (!getMockSession()) return httpError(401, '登录已过期，请重新登录')
     // 扁平结构返回，树由前端工具函数构建。
     return ok(categoryMock.map(toRecord))
   }),
 
-  http.post('*/product/category', async ({ request }) => {
+  http.post('*/api/product/category', async ({ request }) => {
     await delay(280)
     const session = getMockSession()
     if (!session) return httpError(401, '登录已过期，请重新登录')
@@ -90,7 +90,7 @@ export const categoryHandlers = [
     return ok(toRecord(record))
   }),
 
-  http.put('*/product/category/:id', async ({ request, params }) => {
+  http.put('*/api/product/category/:id', async ({ request, params }) => {
     await delay(280)
     const session = getMockSession()
     if (!session) return httpError(401, '登录已过期，请重新登录')
@@ -129,7 +129,7 @@ export const categoryHandlers = [
     return ok(toRecord(record))
   }),
 
-  http.put('*/product/category/:id/status', async ({ request, params }) => {
+  http.put('*/api/product/category/:id/status', async ({ request, params }) => {
     await delay(280)
     const session = getMockSession()
     if (!session) return httpError(401, '登录已过期，请重新登录')
@@ -144,7 +144,7 @@ export const categoryHandlers = [
     return ok(toRecord(record))
   }),
 
-  http.delete('*/product/category/:id', async ({ params }) => {
+  http.delete('*/api/product/category/:id', async ({ params }) => {
     await delay(280)
     const session = getMockSession()
     if (!session) return httpError(401, '登录已过期，请重新登录')

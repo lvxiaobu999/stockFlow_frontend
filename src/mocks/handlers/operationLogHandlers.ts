@@ -8,7 +8,7 @@ import { httpError, ok } from '@/mocks/utils'
 
 /** 操作日志接口：只读分页查询与筛选下拉选项，不提供任何写接口。 */
 export const operationLogHandlers = [
-  http.get('*/system/operation-log/page', async ({ request }) => {
+  http.get('*/api/system/operation-log/page', async ({ request }) => {
     await delay(280)
     if (!getMockSession()) return httpError(401, '登录已过期，请重新登录')
 
@@ -34,7 +34,7 @@ export const operationLogHandlers = [
     return ok(paginate(filtered, current, pageSize))
   }),
 
-  http.get('*/system/operation-log/options', async () => {
+  http.get('*/api/system/operation-log/options', async () => {
     await delay(280)
     if (!getMockSession()) return httpError(401, '登录已过期，请重新登录')
     // 操作人下拉取内部员工（登录失败记录的「未知账号」不进入选项）。

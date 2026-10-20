@@ -33,7 +33,7 @@ export const productQueryKeys = {
 ## MSW 使用方式
 
 - `src/mocks/data/`：可复用的类型化 mock 数据。
-- `src/mocks/handlers.ts`：按真实 API 路径注册 `http.get/http.post` handler。
+- `src/mocks/handlers.ts`：按真实 API 路径注册 `http.get/http.post` handler。模式必须以 `*/api/` 开头（如 `*/api/product/:id`），不要写裸的 `*/product/:id`——MSW service worker 会拦截浏览器的一切请求（含 Vite 开发服务器的模块加载），裸模式会误匹配 `/src/**/product/*.tsx` 这类源码路径，导致页面模块收到 JSON 响应、动态 import 失败、整页白屏报错。
 - `src/mocks/browser.ts`：创建浏览器 worker。
 - `src/main.tsx`：开发环境且 `VITE_USE_MOCK_API=true` 时启动 worker。
 - `public/mockServiceWorker.js`：MSW 生成的 worker 文件，升级 MSW 后使用 `pnpm exec msw init public/ --save` 更新。

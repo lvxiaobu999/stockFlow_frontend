@@ -66,20 +66,20 @@ function findCategoryError(categoryId: string) {
 
 /** 商品接口：分页、编码预取、新建、编辑、启停、详情与库存演示数据。 */
 export const productHandlers = [
-  http.get('*/product/next-code', async () => {
+  http.get('*/api/product/next-code', async () => {
     await delay(280)
     if (!getMockSession()) return httpError(401, '登录已过期，请重新登录')
     return ok(nextProductCode())
   }),
 
-  http.get('*/product/page', async ({ request }) => {
+  http.get('*/api/product/page', async ({ request }) => {
     await delay(280)
     if (!getMockSession()) return httpError(401, '登录已过期，请重新登录')
     const params = parseParams(new URL(request.url))
     return ok(paginate(filterProducts(params), params.current, params.pageSize))
   }),
 
-  http.post('*/product', async ({ request }) => {
+  http.post('*/api/product', async ({ request }) => {
     await delay(280)
     const session = getMockSession()
     if (!session) return httpError(401, '登录已过期，请重新登录')
@@ -113,7 +113,7 @@ export const productHandlers = [
     return ok(record)
   }),
 
-  http.put('*/product/:id', async ({ request, params }) => {
+  http.put('*/api/product/:id', async ({ request, params }) => {
     await delay(280)
     const session = getMockSession()
     if (!session) return httpError(401, '登录已过期，请重新登录')
@@ -141,7 +141,7 @@ export const productHandlers = [
     return ok(record)
   }),
 
-  http.put('*/product/:id/status', async ({ request, params }) => {
+  http.put('*/api/product/:id/status', async ({ request, params }) => {
     await delay(280)
     const session = getMockSession()
     if (!session) return httpError(401, '登录已过期，请重新登录')
@@ -156,7 +156,7 @@ export const productHandlers = [
     return ok(record)
   }),
 
-  http.get('*/product/:id/stock-summary', async ({ params }) => {
+  http.get('*/api/product/:id/stock-summary', async ({ params }) => {
     await delay(280)
     if (!getMockSession()) return httpError(401, '登录已过期，请重新登录')
     const record = productsMock.find((item) => item.id === params.id)
@@ -165,7 +165,7 @@ export const productHandlers = [
     return ok(buildStockSummary(record))
   }),
 
-  http.get('*/product/:id/stock-transactions', async ({ request, params }) => {
+  http.get('*/api/product/:id/stock-transactions', async ({ request, params }) => {
     await delay(280)
     if (!getMockSession()) return httpError(401, '登录已过期，请重新登录')
     const record = productsMock.find((item) => item.id === params.id)
@@ -175,7 +175,7 @@ export const productHandlers = [
     return ok(transactions)
   }),
 
-  http.get('*/product/:id', async ({ params }) => {
+  http.get('*/api/product/:id', async ({ params }) => {
     await delay(280)
     if (!getMockSession()) return httpError(401, '登录已过期，请重新登录')
     const record = productsMock.find((item) => item.id === params.id)

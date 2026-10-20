@@ -45,14 +45,14 @@ function logWarehouse(operator: string, action: string, targetSummary: string): 
 
 /** 仓库接口：分页、新建、编辑与启停。 */
 export const warehouseHandlers = [
-  http.get('*/inventory/warehouse/page', async ({ request }) => {
+  http.get('*/api/inventory/warehouse/page', async ({ request }) => {
     await delay(280)
     if (!getMockSession()) return httpError(401, '登录已过期，请重新登录')
     const params = parseParams(new URL(request.url))
     return ok(paginate(filterWarehouses(params).map(toRecord), params.current, params.pageSize))
   }),
 
-  http.post('*/inventory/warehouse', async ({ request }) => {
+  http.post('*/api/inventory/warehouse', async ({ request }) => {
     await delay(280)
     const session = getMockSession()
     if (!session) return httpError(401, '登录已过期，请重新登录')
@@ -84,7 +84,7 @@ export const warehouseHandlers = [
     return ok(toRecord(record))
   }),
 
-  http.put('*/inventory/warehouse/:id', async ({ request, params }) => {
+  http.put('*/api/inventory/warehouse/:id', async ({ request, params }) => {
     await delay(280)
     const session = getMockSession()
     if (!session) return httpError(401, '登录已过期，请重新登录')
@@ -109,7 +109,7 @@ export const warehouseHandlers = [
     return ok(toRecord(record))
   }),
 
-  http.put('*/inventory/warehouse/:id/status', async ({ request, params }) => {
+  http.put('*/api/inventory/warehouse/:id/status', async ({ request, params }) => {
     await delay(280)
     const session = getMockSession()
     if (!session) return httpError(401, '登录已过期，请重新登录')

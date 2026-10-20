@@ -40,14 +40,14 @@ function logSupplier(operator: string, action: string, targetSummary: string): v
 
 /** 供应商接口：分页、新建、编辑、启停、详情与近 5 笔订单演示数据。 */
 export const supplierHandlers = [
-  http.get('*/supplier/page', async ({ request }) => {
+  http.get('*/api/supplier/page', async ({ request }) => {
     await delay(280)
     if (!getMockSession()) return httpError(401, '登录已过期，请重新登录')
     const params = parseParams(new URL(request.url))
     return ok(paginate(filterSuppliers(params), params.current, params.pageSize))
   }),
 
-  http.post('*/supplier', async ({ request }) => {
+  http.post('*/api/supplier', async ({ request }) => {
     await delay(280)
     const session = getMockSession()
     if (!session) return httpError(401, '登录已过期，请重新登录')
@@ -85,7 +85,7 @@ export const supplierHandlers = [
     return ok(record)
   }),
 
-  http.put('*/supplier/:id', async ({ request, params }) => {
+  http.put('*/api/supplier/:id', async ({ request, params }) => {
     await delay(280)
     const session = getMockSession()
     if (!session) return httpError(401, '登录已过期，请重新登录')
@@ -114,7 +114,7 @@ export const supplierHandlers = [
     return ok(record)
   }),
 
-  http.put('*/supplier/:id/status', async ({ request, params }) => {
+  http.put('*/api/supplier/:id/status', async ({ request, params }) => {
     await delay(280)
     const session = getMockSession()
     if (!session) return httpError(401, '登录已过期，请重新登录')
@@ -134,7 +134,7 @@ export const supplierHandlers = [
     return ok(record)
   }),
 
-  http.get('*/supplier/:id/recent-orders', async ({ params }) => {
+  http.get('*/api/supplier/:id/recent-orders', async ({ params }) => {
     await delay(280)
     if (!getMockSession()) return httpError(401, '登录已过期，请重新登录')
     const record = suppliersMock.find((item) => item.id === params.id)
@@ -143,7 +143,7 @@ export const supplierHandlers = [
     return ok(buildRecentOrders(record))
   }),
 
-  http.get('*/supplier/:id', async ({ params }) => {
+  http.get('*/api/supplier/:id', async ({ params }) => {
     await delay(280)
     if (!getMockSession()) return httpError(401, '登录已过期，请重新登录')
     const record = suppliersMock.find((item) => item.id === params.id)

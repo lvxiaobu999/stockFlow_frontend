@@ -1,6 +1,5 @@
 import { useState } from 'react'
-import { Alert, App, Button, Space, Spin } from 'antd'
-import { ReloadOutlined } from '@ant-design/icons'
+import { Alert, App, Button, Spin } from 'antd'
 import { routeMeta } from '@/config/routes'
 import { PageHeader } from '@/components/common/PageHeader'
 import { usePermissions } from '@/features/auth/hooks/usePermissions'
@@ -82,17 +81,7 @@ export default function CategoryPage() {
 
   return (
     <div className="dashboard-page">
-      <PageHeader
-        title={routeMeta.productCategory.title}
-        description={routeMeta.productCategory.description}
-        extra={
-          <Space>
-            <Button icon={<ReloadOutlined />} onClick={() => void refetch()}>
-              刷新
-            </Button>
-          </Space>
-        }
-      />
+      <PageHeader title={routeMeta.productCategory.title} description={routeMeta.productCategory.description} />
       {error ? (
         <Alert
           type="error"

@@ -24,7 +24,7 @@ export default function ProfilePage() {
           <ProfileBasicForm />
         </Col>
         <Col xs={24} lg={12}>
-          <Space direction="vertical" size={16} className="w-full">
+          <Space orientation="vertical" size={16} className="w-full">
             <Card title="账号与安全">
               <Descriptions column={1} size="small">
                 <Descriptions.Item label="用户类型">

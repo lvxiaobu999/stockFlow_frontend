@@ -1,5 +1,6 @@
 import { create } from 'zustand'
 import type { AuthSession, CurrentUser } from '@/features/auth/types'
+import { devtools } from 'zustand/middleware'
 
 interface AuthState {
   /** 当前登录用户；null 表示未登录（处于登录页或会话尚未恢复）。 */
@@ -19,10 +20,17 @@ interface AuthState {
  * 不写入 localStorage。刷新页面后的会话恢复由 features/auth 的
  * useAuthSession 引导查询完成。
  */
-export const useAuthStore = create<AuthState>()((set) => ({
-  currentUser: null,
-  permissions: [],
-  // AuthSession 的用户字段名为 user，store 内统一叫 currentUser（对外语义更直白）。
-  setSession: ({ user, permissions }) => set({ currentUser: user, permissions }),
-  clearSession: () => set({ currentUser: null, permissions: [] }),
-}))
+export const useAuthStore = create<AuthState>()(
+  devtools(
+    (set) => ({
+      currentUser: null,
+      permissions: [],
+      // AuthSession 的用户字段名为 user，store 内统一叫 currentUser（对外语义更直白）。
+      setSession: ({ user, permissions }) => set({ currentUser: user, permissions }),
+      clearSession: () => set({ currentUser: null, permissions: [] }),
+    }),
+    {
+      name: 'AuthStore',
+    },
+  ),
+)

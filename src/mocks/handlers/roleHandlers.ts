@@ -25,7 +25,7 @@ function withUserCount(role: RoleRecord): RoleRecord {
 
 /** 角色管理接口：分页、下拉、增改、启停与权限树配置。 */
 export const roleHandlers = [
-  http.get('*/system/role/page', async ({ request }) => {
+  http.get('*/api/system/role/page', async ({ request }) => {
     await delay(280)
     if (!getMockSession()) return httpError(401, '登录已过期，请重新登录')
     const url = new URL(request.url)
@@ -41,14 +41,14 @@ export const roleHandlers = [
     return ok(paginate(filtered.map(withUserCount), current, pageSize))
   }),
 
-  http.get('*/system/role/options', async () => {
+  http.get('*/api/system/role/options', async () => {
     await delay(280)
     if (!getMockSession()) return httpError(401, '登录已过期，请重新登录')
     // 下拉选项只提供启用中的角色；停用角色不能再被新单据与表单引用。
     return ok(roleMock.filter((role) => role.status === 1).map(withUserCount))
   }),
 
-  http.post('*/system/role', async ({ request }) => {
+  http.post('*/api/system/role', async ({ request }) => {
     await delay(280)
     const session = getMockSession()
     if (!session) return httpError(401, '登录已过期，请重新登录')
@@ -72,7 +72,7 @@ export const roleHandlers = [
     return ok(withUserCount(record))
   }),
 
-  http.put('*/system/role/:id', async ({ request, params }) => {
+  http.put('*/api/system/role/:id', async ({ request, params }) => {
     await delay(280)
     const session = getMockSession()
     if (!session) return httpError(401, '登录已过期，请重新登录')
@@ -89,7 +89,7 @@ export const roleHandlers = [
     return ok(withUserCount(record))
   }),
 
-  http.put('*/system/role/:id/status', async ({ request, params }) => {
+  http.put('*/api/system/role/:id/status', async ({ request, params }) => {
     await delay(280)
     const session = getMockSession()
     if (!session) return httpError(401, '登录已过期，请重新登录')
@@ -113,13 +113,13 @@ export const roleHandlers = [
     return ok(withUserCount(record))
   }),
 
-  http.get('*/system/permission/tree', async () => {
+  http.get('*/api/system/permission/tree', async () => {
     await delay(280)
     if (!getMockSession()) return httpError(401, '登录已过期，请重新登录')
     return ok(permissionTreeMock)
   }),
 
-  http.get('*/system/role/:id/permissions', async ({ params }) => {
+  http.get('*/api/system/role/:id/permissions', async ({ params }) => {
     await delay(280)
     if (!getMockSession()) return httpError(401, '登录已过期，请重新登录')
     const record = roleMock.find((role) => role.id === params.id)
@@ -127,7 +127,7 @@ export const roleHandlers = [
     return ok(savedRolePermissions.get(record.code) ?? [])
   }),
 
-  http.put('*/system/role/:id/permissions', async ({ request, params }) => {
+  http.put('*/api/system/role/:id/permissions', async ({ request, params }) => {
     await delay(280)
     const session = getMockSession()
     if (!session) return httpError(401, '登录已过期，请重新登录')
@@ -142,7 +142,7 @@ export const roleHandlers = [
     return ok(null)
   }),
 
-  http.get('*/system/role/:id/users', async ({ params }) => {
+  http.get('*/api/system/role/:id/users', async ({ params }) => {
     await delay(280)
     if (!getMockSession()) return httpError(401, '登录已过期，请重新登录')
     const record = roleMock.find((role) => role.id === params.id)

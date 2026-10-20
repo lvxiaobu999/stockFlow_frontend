@@ -9,7 +9,7 @@ import { httpError, ok } from '@/mocks/utils'
 
 /** 认证相关接口：登录、退出、会话恢复、基本资料与密码修改。 */
 export const authHandlers = [
-  http.post('*/auth/login', async ({ request }) => {
+  http.post('*/api/auth/login', async ({ request }) => {
     await delay(280)
     const body = (await request.json()) as Partial<LoginPayload>
     const username = body.username?.trim() ?? ''
@@ -38,7 +38,7 @@ export const authHandlers = [
     return ok(session)
   }),
 
-  http.post('*/auth/logout', async () => {
+  http.post('*/api/auth/logout', async () => {
     await delay(280)
     const session = getMockSession()
     if (session) {
@@ -48,7 +48,7 @@ export const authHandlers = [
     return ok(null)
   }),
 
-  http.get('*/auth/me', async () => {
+  http.get('*/api/auth/me', async () => {
     await delay(280)
     const session = getMockSession()
     if (!session) {
@@ -57,7 +57,7 @@ export const authHandlers = [
     return ok(session)
   }),
 
-  http.put('*/auth/profile', async ({ request }) => {
+  http.put('*/api/auth/profile', async ({ request }) => {
     await delay(280)
     const session = getMockSession()
     if (!session) return httpError(401, '登录已过期，请重新登录')
@@ -76,7 +76,7 @@ export const authHandlers = [
     return ok(sessionUser)
   }),
 
-  http.put('*/auth/password', async ({ request }) => {
+  http.put('*/api/auth/password', async ({ request }) => {
     await delay(280)
     const session = getMockSession()
     if (!session) return httpError(401, '登录已过期，请重新登录')
