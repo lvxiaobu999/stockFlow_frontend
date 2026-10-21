@@ -72,6 +72,27 @@ export const productHandlers = [
     return ok(nextProductCode())
   }),
 
+  // options 必须注册在 /:id 之前，否则 "options" 会被当作 id 匹配。
+  http.get('*/api/product/options', async () => {
+    await delay(280)
+    if (!getMockSession()) return httpError(401, '登录已过期，请重新登录')
+    // 仅启用商品可被采购单据引用；预警字段供「从预警商品带入」前端过滤。
+    return ok(
+      productsMock
+        .filter((product) => product.status === 1)
+        .map((product) => ({
+          id: product.id,
+          code: product.code,
+          name: product.name,
+          spec: product.spec,
+          unit: product.unit,
+          purchasePrice: product.purchasePrice,
+          safetyStock: product.safetyStock,
+          totalStock: product.totalStock,
+        })),
+    )
+  }),
+
   http.get('*/api/product/page', async ({ request }) => {
     await delay(280)
     if (!getMockSession()) return httpError(401, '登录已过期，请重新登录')

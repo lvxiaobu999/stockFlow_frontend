@@ -73,6 +73,20 @@ export interface ProductRecord {
   updatedAt: string
 }
 
+/** 商品下拉选项（仅启用商品）：采购明细选品等「选商品」场景使用，不携带档案长字段。 */
+export interface ProductOption {
+  id: string
+  code: string
+  name: string
+  spec: string
+  unit: ProductUnit
+  /** 采购参考价（元），作为单据明细参考价默认值。 */
+  purchasePrice: number
+  /** 安全库存与当前总库存：供「从预警商品带入」按 totalStock < safetyStock 前端过滤。 */
+  safetyStock: number
+  totalStock: number
+}
+
 /** 商品列表查询参数。 */
 export interface ProductListParams {
   /** 关键字，模糊匹配编码 / 名称 / 规格。 */

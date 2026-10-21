@@ -2,6 +2,7 @@ import { keepPreviousData, useQuery } from '@tanstack/react-query'
 import { productService } from '@/features/product/services/productService'
 import type {
   ProductListParams,
+  ProductOption,
   ProductRecord,
   ProductStockSummary,
   ProductStockTransaction,
@@ -13,6 +14,8 @@ export const productQueryKeys = {
   all: ['product', 'products'] as const,
   /** 分页查询 key：筛选与分页参数全部进入 key，保证不同查询互不串缓存。 */
   page: (params: ProductListParams) => [...productQueryKeys.all, 'page', params] as const,
+  /** 下拉选项 key：与分页查询分离，避免失效粒度过大。 */
+  options: () => [...productQueryKeys.all, 'options'] as const,
   /** 详情 key：id 为空字符串时不发起请求。 */
   detail: (id: string) => [...productQueryKeys.all, 'detail', id] as const,
   /** 库存汇总（按仓库）key。 */
@@ -38,6 +41,20 @@ export function useProducts(params: ProductListParams) {
     isFetching: query.isFetching,
     error: query.error,
     refetch: query.refetch,
+  }
+}
+
+/** 商品下拉选项（仅启用商品）：采购单据选品用；选项短期稳定，缓存 5 分钟。 */
+export function useProductOptions() {
+  const query = useQuery({
+    queryKey: productQueryKeys.options(),
+    queryFn: ({ signal }) => productService.getOptions(signal),
+    staleTime: 5 * 60 * 1000,
+  })
+  return {
+    data: (query.data ?? []) as ProductOption[],
+    isLoading: query.isPending,
+    error: query.error,
   }
 }
 

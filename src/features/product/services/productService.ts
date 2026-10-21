@@ -1,5 +1,6 @@
 import type {
   ProductListParams,
+  ProductOption,
   ProductPayload,
   ProductRecord,
   ProductStockSummary,
@@ -22,6 +23,11 @@ export const productService = {
   /** 分页查询商品；stockBelowSafety=true 时仅返回低于安全库存的预警商品。 */
   async getPage(params: ProductListParams, signal?: AbortSignal): Promise<PaginatedData<ProductRecord>> {
     return request<PaginatedData<ProductRecord>>('/product/page', { params, signal })
+  },
+
+  /** 商品下拉选项（仅启用商品）：采购单据明细选品等场景使用。 */
+  async getOptions(signal?: AbortSignal): Promise<ProductOption[]> {
+    return request<ProductOption[]>('/product/options', { signal })
   },
 
   /** 新建商品；所属分类停用或不存在时后端返回业务码 4203。 */
