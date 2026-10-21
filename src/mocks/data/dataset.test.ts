@@ -1,8 +1,11 @@
 import { describe, expect, it } from 'vitest'
+import dayjs from 'dayjs'
 import { routeMeta } from '@/config/routes'
+import type { ApprovalAction, ApprovalRecord } from '@/features/approval/types'
 import { isTaxNoValid } from '@/features/supplier/utils/validators'
 import { PRODUCT_UNITS } from '@/features/product/types'
 import { isPriceValid } from '@/features/product/utils/validators'
+import type { PurchaseRequestStatus } from '@/features/purchase/types'
 import { categoryMock } from './categories'
 import { productsMock } from './products'
 import { resolvePermissions } from './auth'
@@ -11,6 +14,7 @@ import { permissionTreeMock, roleMock, rolePermissionCodes } from './roles'
 import { suppliersMock } from './suppliers'
 import { usersMock, DEMO_SUPPLIER_USERNAME, getRoleUserCount } from './users'
 import { warehousesMock } from './warehouses'
+import { approvalRecordsMock, nextPurchaseRequestCode, purchaseRequestsMock } from './purchaseRequests'
 
 /**
  * Mock 数据集不变量：这些约束是「演示账号体系自洽」的底线，
@@ -209,5 +213,102 @@ describe('基础资料数据集不变量', () => {
     expect(values).toContain('product')
     expect(values).toContain('supplier')
     expect(values).toContain('inventory')
+  })
+})
+
+describe('采购申请数据集不变量', () => {
+  it('申请 12 条：状态分布 2/4/2/2/2，编号唯一且 = PR + 创建日期 + 4 位流水', () => {
+    expect(purchaseRequestsMock).toHaveLength(12)
+    const byStatus = (status: PurchaseRequestStatus) => purchaseRequestsMock.filter((item) => item.status === status)
+    expect(byStatus('draft')).toHaveLength(2)
+    expect(byStatus('pending')).toHaveLength(4)
+    expect(byStatus('approved')).toHaveLength(2)
+    expect(byStatus('rejected')).toHaveLength(2)
+    expect(byStatus('ordered')).toHaveLength(2)
+    expect(new Set(purchaseRequestsMock.map((item) => item.id)).size).toBe(12)
+    expect(new Set(purchaseRequestsMock.map((item) => item.code)).size).toBe(12)
+    for (const item of purchaseRequestsMock) {
+      expect(item.code).toMatch(/^PR\d{8}\d{4}$/)
+      // 编码日期段必须与创建日期一致，流水段为正整数。
+      expect(item.code.startsWith(`PR${dayjs(item.createdAt).format('YYYYMMDD')}`)).toBe(true)
+      expect(Number(item.code.slice(-4))).toBeGreaterThan(0)
+    }
+  })
+
+  it('下一编号 = 今天日期 + 全局最大流水 + 1', () => {
+    expect(nextPurchaseRequestCode()).toBe(`PR${dayjs().format('YYYYMMDD')}0013`)
+  })
+
+  it('明细引用真实商品且不重复：行金额 = 数量 × 参考价，总额 = Σ 行金额', () => {
+    for (const request of purchaseRequestsMock) {
+      expect(request.items.length).toBeGreaterThan(0)
+      const productIds = new Set<string>()
+      for (const item of request.items) {
+        const product = productsMock.find((candidate) => candidate.id === item.productId)
+        expect(product).toBeDefined()
+        expect(productIds.has(item.productId)).toBe(false)
+        productIds.add(item.productId)
+        // 快照字段与商品档案一致，参考价默认取采购参考价。
+        expect(item.productCode).toBe(product!.code)
+        expect(item.productName).toBe(product!.name)
+        expect(item.spec).toBe(product!.spec)
+        expect(item.unit).toBe(product!.unit)
+        expect(item.referencePrice).toBe(product!.purchasePrice)
+        expect(item.amount).toBe(Math.round(item.quantity * product!.purchasePrice * 100) / 100)
+      }
+      const sum = request.items.reduce((total, item) => total + item.amount, 0)
+      expect(request.totalAmount).toBe(Math.round(sum * 100) / 100)
+    }
+  })
+
+  it('申请人均为真实内部员工，姓名与部门随档案快照', () => {
+    const staffById = new Map(usersMock.filter((user) => user.userType === 'staff').map((user) => [user.id, user]))
+    for (const request of purchaseRequestsMock) {
+      const staff = staffById.get(request.applicantId)
+      expect(staff).toBeDefined()
+      expect(request.applicantName).toBe(staff!.name)
+      expect(request.department).toBe(staff!.department)
+    }
+  })
+
+  it('提交时间口径：草稿（含撤回）无提交时间，其余状态必有；仅已生成订单携带订单号', () => {
+    for (const request of purchaseRequestsMock) {
+      if (request.status === 'draft') expect(request.submittedAt).toBeUndefined()
+      else expect(request.submittedAt).toBeDefined()
+      if (request.status === 'ordered') expect(request.orderedOrderCode).toBeDefined()
+      else expect(request.orderedOrderCode).toBeUndefined()
+    }
+  })
+
+  it('审批流水均引用有效申请、以 create 开头且时间正序，结论动作与状态一致、拒绝必附意见', () => {
+    const requestById = new Map(purchaseRequestsMock.map((item) => [item.id, item]))
+    const grouped = new Map<string, ApprovalRecord[]>()
+    for (const record of approvalRecordsMock) {
+      expect(record.businessType).toBe('purchase_request')
+      expect(requestById.has(record.businessId)).toBe(true)
+      const list = grouped.get(record.businessId) ?? []
+      list.push(record)
+      grouped.set(record.businessId, list)
+    }
+    // 12 条申请全有流水（draft 含撤回流水）。
+    expect(grouped.size).toBe(purchaseRequestsMock.length)
+    // 各状态的末笔动作：由生命周期种子决定（pending = 提交，结论 = 审批动作，draft = 创建/撤回）。
+    const expectedLastActions: Record<PurchaseRequestStatus, ApprovalAction[]> = {
+      draft: ['create', 'withdraw'],
+      pending: ['submit'],
+      approved: ['approve'],
+      rejected: ['reject'],
+      ordered: ['approve'],
+    }
+    for (const [businessId, records] of grouped) {
+      expect(records[0].action).toBe('create')
+      const times = records.map((record) => record.createdAt)
+      expect([...times].sort()).toEqual(times)
+      const request = requestById.get(businessId)!
+      expect(expectedLastActions[request.status]).toContain(records[records.length - 1].action)
+      for (const record of records) {
+        if (record.action === 'reject') expect(record.comment).toBeTruthy()
+      }
+    }
   })
 })

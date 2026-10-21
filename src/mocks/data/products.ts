@@ -356,6 +356,11 @@ export function findProductByName(name: string): ProductRecord | undefined {
   return productsMock.find((item) => item.name === name)
 }
 
+/** 按 id 查找商品（采购明细等单据引用校验使用）。 */
+export function findProductById(id: string): ProductRecord | undefined {
+  return productsMock.find((item) => item.id === id)
+}
+
 /** 各启用仓的库存拆分权重（总仓为主仓），仅用于演示数据的确定性生成。 */
 const STOCK_SPLIT_WEIGHTS = [0.45, 0.25, 0.18, 0.12]
 
