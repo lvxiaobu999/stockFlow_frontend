@@ -1,9 +1,11 @@
 import type { MenuProps } from 'antd'
+import { Badge, ConfigProvider, Layout, Menu } from 'antd'
 import { cloneElement, isValidElement, useMemo, type ReactElement } from 'react'
-import { ConfigProvider, Layout, Menu } from 'antd'
 import { Link, useLocation } from 'react-router-dom'
 import { appEnv } from '@/config/env'
 import { getNavigationParentKey, navigationItems, type NavigationItem } from '@/config/navigation'
+import { usePermissions } from '@/features/auth/hooks/usePermissions'
+import { useApprovalPendingCount } from '@/features/approval/hooks/useApprovals'
 import { filterNavigationByPermissions } from '@/features/auth/utils/permissions'
 import { useAppStore } from '@/stores/appStore'
 import { useAuthStore } from '@/stores/authStore'
@@ -17,17 +19,30 @@ const MENU_ICON_SIZE = 24
 /** 折叠态图标放大到 20px，撑满 20x20 的圆形按钮。 */
 const COLLAPSED_MENU_ICON_SIZE = 24
 
-/** 把导航配置递归转换成 Ant Design Menu 需要的 items 结构。 */
-function toMenuItems(items: NavigationItem[], iconSize: number): MenuProps['items'] {
-  return items.map((item) => ({
-    key: item.key,
-    icon: isValidElement(item.icon)
-      ? cloneElement(item.icon as ReactElement<SvgIconProps>, { size: iconSize })
-      : item.icon,
+/** 把导航配置递归转换成 Ant Design Menu 需要的 items 结构；badges 按叶子项 key 注入待办徽标。 */
+function toMenuItems(items: NavigationItem[], iconSize: number, badges: Record<string, number>): MenuProps['items'] {
+  return items.map((item) => {
+    const count = badges[item.key] ?? 0
     // 叶子项渲染为内部 Link，保证 NavigationProgress 能捕获到内部跳转。
-    label: item.path ? <Link to={item.path}>{item.label}</Link> : item.label,
-    children: item.children ? toMenuItems(item.children, iconSize) : undefined,
-  }))
+    let label: React.ReactNode = item.path ? <Link to={item.path}>{item.label}</Link> : item.label
+    if (count > 0 && item.path) {
+      label = (
+        <Link to={item.path}>
+          {item.label}
+          {/* 官方菜单徽标模式：Badge 挂在 label 尾部，待办数变化由查询失效驱动。 */}
+          <Badge count={count} size="small" overflowCount={99} style={{ boxShadow: 'none' }} />
+        </Link>
+      )
+    }
+    return {
+      key: item.key,
+      icon: isValidElement(item.icon)
+        ? cloneElement(item.icon as ReactElement<SvgIconProps>, { size: iconSize })
+        : item.icon,
+      label,
+      children: item.children ? toMenuItems(item.children, iconSize, badges) : undefined,
+    }
+  })
 }
 
 /**
@@ -84,12 +99,21 @@ export function AppSidebar() {
   const collapsed = useAppStore((state) => state.sidebarCollapsed)
   const permissions = useAuthStore((state) => state.permissions)
   const location = useLocation()
+  const { has } = usePermissions()
+  // 我的审批待办徽标：仅持审批菜单权限时拉取计数，裁决后随查询失效自动刷新。
+  const canReview = has('menu:approval:pending')
+  const { count: approvalPendingCount } = useApprovalPendingCount(canReview)
   // 根路径没有对应菜单项，映射到工作台，保证刷新首页时高亮正确。
   const selected = location.pathname === '/' ? '/dashboard' : location.pathname
   // 反查当前路径所属的一级分组，用于首次加载时展开正确的菜单分组。
   const parentKey = getNavigationParentKey(location.pathname)
   // 菜单按权限过滤：叶子无权限剔除，分组子级全空时整组隐藏（admin 持 '*' 全可见）。
   const visibleItems = useMemo(() => filterNavigationByPermissions(navigationItems, permissions), [permissions])
+  // 徽标按叶子项 key（= 路由 path）注入；无权限或计数为 0 时不渲染。
+  const badges: Record<string, number> = {}
+  if (canReview && approvalPendingCount > 0) {
+    badges['/approval/pending'] = approvalPendingCount
+  }
 
   return (
     <ConfigProvider
@@ -128,7 +152,7 @@ export function AppSidebar() {
           styles={collapsed ? collapsedMenuStyles : expandedMenuStyles}
           selectedKeys={[selected]}
           defaultOpenKeys={parentKey ? [parentKey] : []}
-          items={toMenuItems(visibleItems, collapsed ? COLLAPSED_MENU_ICON_SIZE : MENU_ICON_SIZE)}
+          items={toMenuItems(visibleItems, collapsed ? COLLAPSED_MENU_ICON_SIZE : MENU_ICON_SIZE, badges)}
           /* triggerSubMenuAction='click' */
         />
         {!collapsed ? (

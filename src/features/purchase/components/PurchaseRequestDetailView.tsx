@@ -1,6 +1,7 @@
 import { Alert, App, Button, Card, Descriptions, Popconfirm, Space, Spin, Table, Tag, Timeline, Typography } from 'antd'
 import type { ColumnsType } from 'antd/es/table'
 import { ArrowLeftOutlined } from '@ant-design/icons'
+import type { ReactNode } from 'react'
 import { usePermissions } from '@/features/auth/hooks/usePermissions'
 import { PurchaseRequestStatusTag } from '@/features/purchase/components/PurchaseRequestStatusTag'
 import { usePurchaseRequestDetail } from '@/features/purchase/hooks/usePurchaseRequests'
@@ -13,8 +14,12 @@ import { formatDateTime, formatMoney } from '@/utils'
 interface PurchaseRequestDetailViewProps {
   id: string
   onBack: () => void
-  /** 进入编辑（草稿编辑 / 被拒重提）。 */
-  onEdit: () => void
+  /** 进入编辑（草稿编辑 / 被拒重提）；仅在申请人侧操作可见时使用。 */
+  onEdit?: () => void
+  /** 审批中心注入的裁决面板：渲染在概要卡之后，注入后隐藏申请人侧操作。 */
+  actionPanel?: ReactNode
+  /** 只读详情（我已审批回看）：隐藏申请人侧状态操作。 */
+  readonly?: boolean
 }
 
 /** 审批时间线节点配色：结论醒目、过程动作中性。 */
@@ -32,16 +37,26 @@ const ACTION_TIMELINE_COLOR: Record<ApprovalRecord['action'], string> = {
  *
  * 头部按状态给出主操作（草稿编辑/提交/删除、待审批撤回、已通过生成订单、
  * 已生成订单查看订单）；审批流水由详情接口随单返回（时间正序）。
+ * 审批中心复用本视图：注入 actionPanel（审批中）或 readonly（已办回看）时
+ * 申请人侧操作整体隐藏，避免审批人看到「撤回 / 修改重提」等越权动作。
  */
-export function PurchaseRequestDetailView({ id, onBack, onEdit }: PurchaseRequestDetailViewProps) {
+export function PurchaseRequestDetailView({
+  id,
+  onBack,
+  onEdit,
+  actionPanel,
+  readonly,
+}: PurchaseRequestDetailViewProps) {
   const { message } = App.useApp()
   const { data, isLoading, error } = usePurchaseRequestDetail(id)
   const { remove, submit, withdraw } = usePurchaseRequestMutations()
   const { has } = usePermissions()
-  const canEdit = has('purchase:request:update')
-  const canSubmit = has('purchase:request:submit')
-  const canWithdraw = has('purchase:request:withdraw')
-  const canDelete = has('purchase:request:delete')
+  // 审批场景（面板注入 / 只读）不展示申请人侧操作；编辑还需要回调可用。
+  const showStatusCta = !actionPanel && !readonly
+  const canEdit = showStatusCta && has('purchase:request:update') && Boolean(onEdit)
+  const canSubmit = showStatusCta && has('purchase:request:submit')
+  const canWithdraw = showStatusCta && has('purchase:request:withdraw')
+  const canDelete = showStatusCta && has('purchase:request:delete')
 
   if (isLoading) {
     return (
@@ -214,6 +229,8 @@ export function PurchaseRequestDetailView({ id, onBack, onEdit }: PurchaseReques
           </Descriptions.Item>
         </Descriptions>
       </Card>
+
+      {actionPanel ? <div className="mt-4">{actionPanel}</div> : null}
 
       <div className="mt-4 flex items-stretch gap-4">
         <div className="min-w-0 flex-1">
