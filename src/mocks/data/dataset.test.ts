@@ -312,3 +312,28 @@ describe('采购申请数据集不变量', () => {
     }
   })
 })
+
+describe('审批中心数据集不变量', () => {
+  it('结论流水 6 条（通过 4 / 拒绝 2），结论人非申请人，且 admin 名下有演示结论', () => {
+    const requestById = new Map(purchaseRequestsMock.map((item) => [item.id, item]))
+    const conclusions = approvalRecordsMock.filter(
+      (record) => record.action === 'approve' || record.action === 'reject',
+    )
+    expect(conclusions.filter((record) => record.action === 'approve')).toHaveLength(4)
+    expect(conclusions.filter((record) => record.action === 'reject')).toHaveLength(2)
+    // 演示管理员（admin）登录后「我已审批」必须有真实数据可看。
+    const admin = usersMock.find((user) => user.username === 'admin')
+    expect(admin).toBeDefined()
+    expect(conclusions.some((record) => record.operatorId === admin!.id)).toBe(true)
+    // 轮换必须跨申请全局推进（序号不能在单条申请内重置），覆盖至少 3 位审批人。
+    expect(new Set(conclusions.map((record) => record.operatorId)).size).toBeGreaterThanOrEqual(3)
+    for (const record of conclusions) {
+      const request = requestById.get(record.businessId)!
+      // 先到先审：审批结论人不能是申请人自己。
+      expect(record.operatorId).not.toBe(request.applicantId)
+      // 结论与单据状态自洽：approve → 已通过 / 已生成订单，reject → 已拒绝。
+      if (record.action === 'approve') expect(['approved', 'ordered']).toContain(request.status)
+      else expect(request.status).toBe('rejected')
+    }
+  })
+})

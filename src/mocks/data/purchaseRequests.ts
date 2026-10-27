@@ -194,8 +194,9 @@ const STEP_OFFSET_HOURS: Record<ApprovalAction, number> = {
 
 /** 审批结论的动作归属人：结论由审批人出具，其余动作归申请人本人。 */
 const CONCLUSION_ACTIONS: ApprovalAction[] = ['approve', 'reject']
-/** 轮换演示审批人：与需求「先到先审」一致，这里按序分配保证演示稳定。 */
-const DEMO_APPROVERS = ['wangfang', 'qianfeng', 'zhouyu']
+/** 轮换演示审批人：与需求「先到先审」一致，这里按序分配保证演示稳定；
+ * admin 首位，保证演示管理员登录后在「我已审批」有真实数据可看。 */
+const DEMO_APPROVERS = ['admin', 'wangfang', 'qianfeng', 'zhouyu']
 
 export const purchaseRequestsMock: PurchaseRequestRecord[] = requestSeeds
   .map((seed, index) => {
@@ -255,32 +256,36 @@ export const purchaseRequestsMock: PurchaseRequestRecord[] = requestSeeds
   .reverse()
 
 /** 全量审批流水：按各申请的生命周期种子确定性展开，审批中心落地后迁走。 */
-export const approvalRecordsMock: ApprovalRecord[] = requestSeeds.flatMap((seed, index) => {
-  const applicant = findUserByUsername(seed.applicant)
-  if (!applicant) throw new Error(`采购申请种子引用了不存在的用户：${seed.applicant}`)
-  const businessId = `pr-${String(index + 1).padStart(3, '0')}`
-  const createdAt = dayjs('2026-09-04 10:00:00').add(index + 1, 'day')
-
+export const approvalRecordsMock: ApprovalRecord[] = (() => {
+  // 结论审批人序号放在 flatMap 外层：轮换按「全局结论次数」推进，
+  // 若放在单条申请内每条都会从第一位审批人重新开始，失去轮换意义。
   let approverSeq = 0
-  return seed.steps.map((action, stepIndex) => {
-    // 结论动作归属审批人（按序轮换），其余动作归申请人。
-    const isConclusion = CONCLUSION_ACTIONS.includes(action)
-    const operator = isConclusion
-      ? (findUserByUsername(DEMO_APPROVERS[approverSeq++ % DEMO_APPROVERS.length]) ?? applicant)
-      : applicant
-    return {
-      id: `${businessId}-apr-${stepIndex + 1}`,
-      businessType: 'purchase_request',
-      businessId,
-      action,
-      operatorId: operator.id,
-      operatorName: operator.name,
-      department: operator.department,
-      comment: isConclusion ? seed.comment : undefined,
-      createdAt: createdAt.add(STEP_OFFSET_HOURS[action], 'hour').format('YYYY-MM-DD HH:mm:ss'),
-    }
+  return requestSeeds.flatMap((seed, index) => {
+    const applicant = findUserByUsername(seed.applicant)
+    if (!applicant) throw new Error(`采购申请种子引用了不存在的用户：${seed.applicant}`)
+    const businessId = `pr-${String(index + 1).padStart(3, '0')}`
+    const createdAt = dayjs('2026-09-04 10:00:00').add(index + 1, 'day')
+
+    return seed.steps.map((action, stepIndex) => {
+      // 结论动作归属审批人（按序轮换），其余动作归申请人。
+      const isConclusion = CONCLUSION_ACTIONS.includes(action)
+      const operator = isConclusion
+        ? (findUserByUsername(DEMO_APPROVERS[approverSeq++ % DEMO_APPROVERS.length]) ?? applicant)
+        : applicant
+      return {
+        id: `${businessId}-apr-${stepIndex + 1}`,
+        businessType: 'purchase_request',
+        businessId,
+        action,
+        operatorId: operator.id,
+        operatorName: operator.name,
+        department: operator.department,
+        comment: isConclusion ? seed.comment : undefined,
+        createdAt: createdAt.add(STEP_OFFSET_HOURS[action], 'hour').format('YYYY-MM-DD HH:mm:ss'),
+      }
+    })
   })
-})
+})()
 
 /** 生成下一个申请编号：全局最大流水 + 1，日期段为当天（服务端生成口径）。 */
 export function nextPurchaseRequestCode(): string {
