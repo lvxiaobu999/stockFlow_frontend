@@ -183,6 +183,8 @@ export interface PurchaseOrderRecord {
   sentAt?: string
   /** 供应商确认时间。 */
   confirmedAt?: string
+  /** 供应商确认时填写的预计发货时间（YYYY-MM-DD，门户扩展字段）。 */
+  promisedShipDate?: string
   /** 供应商拒绝时间与原因（rejected 时成对出现）。 */
   rejectedAt?: string
   rejectReason?: string

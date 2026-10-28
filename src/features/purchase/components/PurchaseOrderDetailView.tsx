@@ -230,6 +230,14 @@ export function PurchaseOrderDetailView({ id, onBack, onEdit }: PurchaseOrderDet
           </Descriptions.Item>
           <Descriptions.Item label="采购员">{data.purchaserName}</Descriptions.Item>
           <Descriptions.Item label="期望交货">{data.expectedDate ?? '—'}</Descriptions.Item>
+          {/* 供应商在门户确认时承诺的发货时间（确认动作回写）。 */}
+          <Descriptions.Item label="预计发货">
+            {data.promisedShipDate ? (
+              <Tag color="green">{data.promisedShipDate}</Tag>
+            ) : (
+              <Typography.Text type="secondary">—</Typography.Text>
+            )}
+          </Descriptions.Item>
           <Descriptions.Item label="创建时间">{formatDateTime(data.createdAt)}</Descriptions.Item>
           <Descriptions.Item label="来源申请" span={2}>
             {data.requestCode ? (
@@ -273,7 +281,7 @@ export function PurchaseOrderDetailView({ id, onBack, onEdit }: PurchaseOrderDet
               image={Empty.PRESENTED_IMAGE_SIMPLE}
               description={
                 <Typography.Text type="secondary">
-                  发货单、收货单、验收单与付款记录将分别来自供应商端、收货验收与付款模块，上线后在此展示
+                  供应商发货单已在供应商门户生成；收货单、验收单与付款记录模块落地后，关联单据将在此一并展示
                 </Typography.Text>
               }
             />

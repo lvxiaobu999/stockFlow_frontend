@@ -7,8 +7,9 @@ import type { LoginPayload } from '@/features/auth/types'
 /**
  * 登录表单：账号 + 密码，提交走 useLogin mutation。
  *
- * 登录失败统一展示后端返回的 message（账号密码错误 / 账号停用 /
- * 供应商账号走门户），不在前端做账号格式预校验，避免和后端规则漂移。
+ * 登录失败统一展示后端返回的 message（账号密码错误 / 账号停用），
+ * 不在前端做账号格式预校验，避免和后端规则漂移；
+ * 登录成功后的落地页按用户类型分流（员工 → 管理端，供应商 → 门户）。
  */
 export function LoginForm() {
   const login = useLogin()
