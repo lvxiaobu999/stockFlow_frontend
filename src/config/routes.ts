@@ -234,13 +234,13 @@ export const routeMeta = {
   receivingReceipt: {
     path: '/receiving/receipt',
     title: '收货单',
-    description: '管理收货单。',
+    description: '登记到货实收数量，跟踪待收货 / 已收货单据。',
     module: 'receiving',
   },
   receivingInspection: {
     path: '/receiving/inspection',
     title: '验收单',
-    description: '管理验收单。',
+    description: '提交合格 / 不合格结论，合格数量进入入库环节。',
     module: 'receiving',
   },
 } as const satisfies Record<string, RouteMeta>

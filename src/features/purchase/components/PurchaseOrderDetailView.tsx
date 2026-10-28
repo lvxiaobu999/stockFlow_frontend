@@ -19,10 +19,15 @@ import {
 } from 'antd'
 import type { ColumnsType } from 'antd/es/table'
 import { ArrowLeftOutlined, SendOutlined } from '@ant-design/icons'
+import { useNavigate } from 'react-router-dom'
 import { usePermissions } from '@/features/auth/hooks/usePermissions'
+import { routeMeta } from '@/config/routes'
 import { PurchaseOrderStatusTag } from '@/features/purchase/components/PurchaseOrderStatusTag'
 import { usePurchaseOrderDetail } from '@/features/purchase/hooks/usePurchaseOrders'
 import { usePurchaseOrderMutations } from '@/features/purchase/hooks/usePurchaseOrderMutations'
+import { useOrderReceivingDocuments } from '@/features/receiving/hooks/useReceivingQueries'
+import { InspectionResultTag } from '@/features/receiving/components/InspectionResultTag'
+import { ReceiptStatusTag } from '@/features/receiving/components/ReceiptStatusTag'
 import type { PurchaseOrderItem } from '@/features/purchase/types'
 import {
   buildOrderTimeline,
@@ -47,12 +52,16 @@ interface PurchaseOrderDetailViewProps {
  * 头部按状态给出主操作（草稿编辑 / 发送 / 删除，待确认与已拒绝作废，
  * 已拒绝重发）；时间线由单据上的状态时间戳派生（服务端不单独维护流水表）。
  * 供应商确认之后的推进动作（发货 / 收货 / 验收 / 付款结清）属供应商端、
- * 收货验收与付款模块，这里只读展示；关联单据区在对应模块上线前显示占位。
+ * 收货验收与付款模块，这里只读展示；关联单据区联查收货单 / 验收单（收货后生成），
+ * 付款记录待付款模块落地后接入。
  */
 export function PurchaseOrderDetailView({ id, onBack, onEdit }: PurchaseOrderDetailViewProps) {
   const { message } = App.useApp()
+  const navigate = useNavigate()
   const { data, isLoading, error } = usePurchaseOrderDetail(id)
   const { remove, send, voidOrder } = usePurchaseOrderMutations()
+  // 关联单据联查：收货单 / 验收单由收货与验收模块按订单生成（未到货时为 null）。
+  const { data: documents } = useOrderReceivingDocuments(id)
   const { has } = usePermissions()
   const canEdit = has('purchase:order:update') && Boolean(onEdit)
   const canSend = has('purchase:order:send')
@@ -277,14 +286,51 @@ export function PurchaseOrderDetailView({ id, onBack, onEdit }: PurchaseOrderDet
             />
           </Card>
           <Card size="small" title="关联单据" className="mt-4">
-            <Empty
-              image={Empty.PRESENTED_IMAGE_SIMPLE}
-              description={
-                <Typography.Text type="secondary">
-                  供应商发货单已在供应商门户生成；收货单、验收单与付款记录模块落地后，关联单据将在此一并展示
-                </Typography.Text>
-              }
-            />
+            {documents?.receipt ? (
+              <div className="flex flex-col gap-3">
+                <div className="flex items-center justify-between">
+                  <Space wrap>
+                    <Typography.Text>收货单 {documents.receipt.code}</Typography.Text>
+                    <ReceiptStatusTag status={documents.receipt.status} />
+                  </Space>
+                  <Button
+                    type="link"
+                    size="small"
+                    onClick={() =>
+                      navigate(`${routeMeta.receivingReceipt.path}?action=detail&id=${documents.receipt!.id}`)
+                    }
+                  >
+                    查看收货单
+                  </Button>
+                </div>
+                {documents.inspection ? (
+                  <div className="flex items-center justify-between">
+                    <Space wrap>
+                      <Typography.Text>验收单 {documents.inspection.code}</Typography.Text>
+                      <InspectionResultTag result={documents.inspection.result} />
+                    </Space>
+                    <Button
+                      type="link"
+                      size="small"
+                      onClick={() =>
+                        navigate(`${routeMeta.receivingInspection.path}?action=detail&id=${documents.inspection!.id}`)
+                      }
+                    >
+                      查看验收单
+                    </Button>
+                  </div>
+                ) : null}
+              </div>
+            ) : (
+              <Empty
+                image={Empty.PRESENTED_IMAGE_SIMPLE}
+                description={
+                  <Typography.Text type="secondary">
+                    供应商发货后在门户生成发货单；仓库确认收货后，收货单与验收单将在此一并展示（付款记录待付款模块落地后接入）
+                  </Typography.Text>
+                }
+              />
+            )}
           </Card>
         </div>
         <div className="w-96 shrink-0">
