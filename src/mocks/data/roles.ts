@@ -116,7 +116,10 @@ export const rolePermissionCodes: Record<string, string[]> = {
   warehouse: [
     'menu:dashboard',
     'menu:receiving:receipt',
+    // 收货登记与验收提交：仓库人员的两个核心动作（采购员仅可查看进度）。
+    'receiving:receipt:confirm',
     'menu:receiving:inspection',
+    'receiving:inspection:submit',
     'menu:inventory:warehouse',
     // 仓库档案维护：仓库人员可新建/编辑/启停（需求：仓库=管理员/仓库人员）。
     'inventory:warehouse:create',
@@ -341,8 +344,18 @@ export const permissionTreeMock: PermissionNode[] = [
     title: '收货与验收',
     type: 'menu',
     children: [
-      { key: 'menu:receiving:receipt', title: '收货单（只读）', type: 'menu' },
-      { key: 'menu:receiving:inspection', title: '验收单（只读）', type: 'menu' },
+      {
+        key: 'menu:receiving:receipt',
+        title: '收货单',
+        type: 'menu',
+        children: [{ key: 'receiving:receipt:confirm', title: '确认收货', type: 'button' }],
+      },
+      {
+        key: 'menu:receiving:inspection',
+        title: '验收单',
+        type: 'menu',
+        children: [{ key: 'receiving:inspection:submit', title: '提交验收', type: 'button' }],
+      },
     ],
   },
   {

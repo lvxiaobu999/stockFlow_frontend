@@ -17,6 +17,7 @@ import { warehousesMock } from './warehouses'
 import { approvalRecordsMock, nextPurchaseRequestCode, purchaseRequestsMock } from './purchaseRequests'
 import { nextPurchaseOrderCode, purchaseOrdersMock } from './purchaseOrders'
 import { shipmentsMock } from './shipments'
+import { inspectionsMock, receiptsMock } from './receiving'
 
 /**
  * Mock 数据集不变量：这些约束是「演示账号体系自洽」的底线，
@@ -566,6 +567,118 @@ describe('发货单数据集不变量', () => {
       const supplier = suppliersMock.find((item) => item.id === shipment.supplierId)
       expect(shipment.createdByName).toBe(supplier!.name)
       expect(supplier!.portalUsername).toBeDefined()
+    }
+  })
+})
+
+describe('收货与验收数据集不变量', () => {
+  it('每张发货单恰有一张收货单（发货即预建待收货），单号 = RC + 单据日期 + 全局递增流水', () => {
+    expect(receiptsMock).toHaveLength(shipmentsMock.length)
+    const shipmentIdSet = new Set(receiptsMock.map((receipt) => receipt.shipmentId))
+    expect(shipmentIdSet.size).toBe(receiptsMock.length)
+    for (const shipment of shipmentsMock) {
+      expect(shipmentIdSet.has(shipment.id)).toBe(true)
+    }
+    expect(new Set(receiptsMock.map((receipt) => receipt.code)).size).toBe(receiptsMock.length)
+    for (const receipt of receiptsMock) {
+      expect(receipt.code).toMatch(/^RC\d{8}\d{4}$/)
+      // 编码日期段必须与单据创建日期（= 发货时间）一致。
+      expect(receipt.code.startsWith(`RC${dayjs(receipt.createdAt).format('YYYYMMDD')}`)).toBe(true)
+      expect(receipt.orderCode).toBe(purchaseOrdersMock.find((order) => order.id === receipt.orderId)!.code)
+    }
+    // 流水全局随单据创建时间递增。
+    const byTime = [...receiptsMock].sort((a, b) => a.createdAt.localeCompare(b.createdAt))
+    const seqs = byTime.map((receipt) => Number(receipt.code.slice(-4)))
+    expect([...seqs].sort((a, b) => a - b)).toEqual(seqs)
+  })
+
+  it('收货状态与订单时间戳自洽：已收货单实收 = 应发，待收货单未登记且无收货人', () => {
+    const orderById = new Map(purchaseOrdersMock.map((order) => [order.id, order]))
+    const receivedReceipts = receiptsMock.filter((receipt) => receipt.status === 'received')
+    // 种子演示：3 张已收货（po-001 / po-003 / po-006）+ 2 张待收货（po-007 / po-009）。
+    expect(receivedReceipts).toHaveLength(3)
+    expect(receiptsMock.filter((receipt) => receipt.status === 'pending')).toHaveLength(2)
+    for (const receipt of receiptsMock) {
+      const order = orderById.get(receipt.orderId)!
+      expect(receipt.items).toHaveLength(order.items.length)
+      for (const item of receipt.items) {
+        expect(item.receivedQty).toBeLessThanOrEqual(item.expectedQty)
+        if (receipt.status === 'received') {
+          expect(item.receivedQty).toBe(item.expectedQty)
+          expect(order.receivedAt).toBe(receipt.receivedAt)
+        } else {
+          expect(item.receivedQty).toBe(0)
+          expect(receipt.receivedAt).toBeUndefined()
+          expect(receipt.receivedByName).toBeUndefined()
+          expect(order.receivedAt).toBeUndefined()
+        }
+      }
+    }
+    // 收货人均为真实内部员工展示名（仓储部轮换）。
+    const staffNames = new Set(usersMock.filter((user) => user.userType === 'staff').map((user) => user.name))
+    for (const receipt of receivedReceipts) {
+      expect(receipt.receivedByName).toBeDefined()
+      expect(staffNames.has(receipt.receivedByName!)).toBe(true)
+    }
+  })
+
+  it('每张已收货单恰有一张验收单（收货即预建待验收），单号 = IS + 单据日期 + 全局递增流水', () => {
+    const receivedReceipts = receiptsMock.filter((receipt) => receipt.status === 'received')
+    expect(inspectionsMock).toHaveLength(receivedReceipts.length)
+    const receiptIdSet = new Set(inspectionsMock.map((inspection) => inspection.receiptId))
+    expect(receiptIdSet.size).toBe(inspectionsMock.length)
+    for (const receipt of receivedReceipts) {
+      expect(receiptIdSet.has(receipt.id)).toBe(true)
+      // 收货单上的验收单投影与验收单数据双向一致。
+      const inspection = inspectionsMock.find((item) => item.receiptId === receipt.id)!
+      expect(receipt.inspectionId).toBe(inspection.id)
+      expect(receipt.inspectionCode).toBe(inspection.code)
+      expect(receipt.inspectionResult).toBe(inspection.result)
+    }
+    expect(new Set(inspectionsMock.map((inspection) => inspection.code)).size).toBe(inspectionsMock.length)
+    for (const inspection of inspectionsMock) {
+      expect(inspection.code).toMatch(/^IS\d{8}\d{4}$/)
+      // 编码日期段必须与单据创建日期（= 收货时间）一致。
+      expect(inspection.code.startsWith(`IS${dayjs(inspection.createdAt).format('YYYYMMDD')}`)).toBe(true)
+    }
+    const byTime = [...inspectionsMock].sort((a, b) => a.createdAt.localeCompare(b.createdAt))
+    const seqs = byTime.map((inspection) => Number(inspection.code.slice(-4)))
+    expect([...seqs].sort((a, b) => a - b)).toEqual(seqs)
+  })
+
+  it('验收结论与订单时间戳自洽：结论行合格 + 不合格 = 实收，且覆盖全部商品', () => {
+    const orderById = new Map(purchaseOrdersMock.map((order) => [order.id, order]))
+    // 种子演示结论分布：全部合格 1（po-003）/ 部分合格 1（po-006，含破损演示）/ 待验收 1（po-001）。
+    expect(inspectionsMock.filter((inspection) => inspection.result === 'qualified')).toHaveLength(1)
+    expect(inspectionsMock.filter((inspection) => inspection.result === 'partial')).toHaveLength(1)
+    expect(inspectionsMock.filter((inspection) => inspection.result === 'pending')).toHaveLength(1)
+    const staffNames = new Set(usersMock.filter((user) => user.userType === 'staff').map((user) => user.name))
+    for (const inspection of inspectionsMock) {
+      const order = orderById.get(inspection.orderId)!
+      for (const item of inspection.items) {
+        // 待验收单数量未登记（0/0）；已验收单须满足「合格 + 不合格 = 实收」。
+        if (inspection.result === 'pending') {
+          expect(item.qualifiedQty).toBe(0)
+          expect(item.unqualifiedQty).toBe(0)
+        } else {
+          expect(item.qualifiedQty + item.unqualifiedQty).toBe(item.receivedQty)
+          expect(item.qualifiedQty).toBeLessThanOrEqual(item.receivedQty)
+        }
+        // 订单数量投影与订单明细一致（验收操作页「应收 vs 实收」对照口径）。
+        expect(item.orderedQty).toBe(order.items.find((orderItem) => orderItem.productId === item.productId)!.quantity)
+      }
+      if (inspection.result === 'pending') {
+        expect(inspection.inspectedAt).toBeUndefined()
+        expect(inspection.inspectedByName).toBeUndefined()
+        expect(order.inspectedAt).toBeUndefined()
+      } else {
+        expect(inspection.inspectedAt).toBe(order.inspectedAt)
+        expect(staffNames.has(inspection.inspectedByName!)).toBe(true)
+      }
+    }
+    // 演示订单（收货 / 验收动作闭环）全部落在已收货 / 已验收 / 已完成订单上。
+    for (const inspection of inspectionsMock) {
+      expect(['received', 'inspected', 'completed']).toContain(orderById.get(inspection.orderId)!.status)
     }
   })
 })

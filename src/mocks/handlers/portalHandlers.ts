@@ -4,6 +4,7 @@ import type { AuthSession } from '@/features/auth/types'
 import type { PurchaseOrderRecord, ShipOrderPayload, ShipmentRecord } from '@/features/supplier-portal/types'
 import type { SupplierRecord } from '@/features/supplier/types'
 import { getMockSession } from '@/mocks/data/auth'
+import { createPendingReceiptForShipment } from '@/mocks/data/receiving'
 import { appendLog } from '@/mocks/data/operation-logs'
 import { purchaseOrdersMock, syncSupplierPendingOrderCounts } from '@/mocks/data/purchaseOrders'
 import { nextShipmentCode, shipmentsMock } from '@/mocks/data/shipments'
@@ -248,6 +249,8 @@ export const portalHandlers = [
     order.status = 'shipped'
     order.shippedAt = now
     order.updatedAt = now
+    // 发货即预建「待收货」收货单，采购方仓库的待收货列表随之出现该单。
+    createPendingReceiptForShipment(shipment)
     // 发货移除一条在途订单，供应商列表的在途订单数随之刷新。
     syncSupplierPendingOrderCounts()
     logPortal(session.user.name, '供应商发货', `采购订单 ${order.code}（发货单 ${shipment.code}）`)
