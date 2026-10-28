@@ -1,6 +1,6 @@
 import { keepPreviousData, useQuery } from '@tanstack/react-query'
 import { supplierService } from '@/features/supplier/services/supplierService'
-import type { SupplierListParams, SupplierRecentOrder, SupplierRecord } from '@/features/supplier/types'
+import type { SupplierListParams, SupplierOption, SupplierRecentOrder, SupplierRecord } from '@/features/supplier/types'
 import type { PaginatedData } from '@/services/httpClient'
 
 export const supplierQueryKeys = {
@@ -12,6 +12,22 @@ export const supplierQueryKeys = {
   detail: (id: string) => [...supplierQueryKeys.all, 'detail', id] as const,
   /** 近 5 笔订单（演示契约）key。 */
   recentOrders: (id: string) => [...supplierQueryKeys.all, 'recent-orders', id] as const,
+  /** 启用供应商下拉 key。 */
+  options: () => [...supplierQueryKeys.all, 'options'] as const,
+}
+
+/** 启用供应商下拉选项（采购订单选商与筛选共用）：选项短期稳定，缓存 5 分钟。 */
+export function useSupplierOptions() {
+  const query = useQuery({
+    queryKey: supplierQueryKeys.options(),
+    queryFn: ({ signal }) => supplierService.getOptions(signal),
+    staleTime: 5 * 60 * 1000,
+  })
+  return {
+    data: (query.data ?? []) as SupplierOption[],
+    isLoading: query.isPending,
+    error: query.error,
+  }
 }
 
 /** 供应商分页查询：翻页时保留上一页数据（placeholderData），避免整表闪烁。 */

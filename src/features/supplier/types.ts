@@ -27,9 +27,9 @@ export interface SupplierRecord {
   taxNo?: string
   remark?: string
   status: EnableStatus
-  /** 在途订单数（采购模块落地前的投影字段）。 */
+  /** 在途订单数（采购订单模块起由订单数据集回写：待供应商确认 + 已确认 + 已发货）。 */
   pendingOrderCount: number
-  /** 累计采购额（元，采购模块落地前的投影字段）。 */
+  /** 累计采购额（元，对账 / 付款模块落地前的投影字段）。 */
   totalPurchaseAmount: number
   /** 门户账号：user 表中该供应商的登录账号；未开通门户账号时缺省。 */
   portalUsername?: string
@@ -65,7 +65,7 @@ export interface CreateSupplierPayload {
 /** 编辑供应商载荷：编码不可修改。 */
 export type UpdateSupplierPayload = CreateSupplierPayload
 
-/** 供应商近 5 笔采购订单（详情页演示契约；采购模块落地后由真实接口替换）。 */
+/** 供应商近 5 笔采购订单（详情页演示契约；真实接口需按供应商过滤采购订单）。 */
 export interface SupplierRecentOrder {
   id: string
   orderNo: string
@@ -73,7 +73,18 @@ export interface SupplierRecentOrder {
   placedAt: string
   /** 订单金额（元）。 */
   totalAmount: number
-  /** 订单状态编码与展示名（采购模块状态枚举定稿前的过渡字段）。 */
+  /** 订单状态编码与展示名（与采购订单状态字典同口径，见 purchase/types）。 */
   statusCode: string
   statusName: string
+}
+
+/**
+ * 启用供应商下拉选项（采购订单的供应商选择与筛选栏共用）。
+ * 仅返回启用供应商：停用供应商不可被新订单引用，历史单据用名称快照展示。
+ */
+export interface SupplierOption {
+  id: string
+  code: string
+  name: string
+  contactPerson: string
 }

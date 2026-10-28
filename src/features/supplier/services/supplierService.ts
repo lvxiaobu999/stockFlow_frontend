@@ -1,6 +1,7 @@
 import type {
   CreateSupplierPayload,
   SupplierListParams,
+  SupplierOption,
   SupplierRecentOrder,
   SupplierRecord,
   UpdateSupplierPayload,
@@ -14,6 +15,11 @@ import { request } from '@/services/httpClient'
  * 门户账号在「用户管理」单独开通（MVP 一对一，按名称关联），此处不联动。
  */
 export const supplierService = {
+  /** 启用供应商下拉（采购订单选商与筛选共用；与商品 options 同款缓存策略）。 */
+  async getOptions(signal?: AbortSignal): Promise<SupplierOption[]> {
+    return request<SupplierOption[]>('/supplier/options', { signal })
+  },
+
   /** 分页查询供应商；inTransit=true 时仅返回有在途订单的供应商。 */
   async getPage(params: SupplierListParams, signal?: AbortSignal): Promise<PaginatedData<SupplierRecord>> {
     return request<PaginatedData<SupplierRecord>>('/supplier/page', { params, signal })
