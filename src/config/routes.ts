@@ -246,8 +246,9 @@ export const routeMeta = {
 } as const satisfies Record<string, RouteMeta>
 
 /**
- * 所有需要懒加载注册的叶子路由 key，与 routeMeta 的 key 一一对应。
- * router/index.tsx 据此生成路由，并保证页面组件注册表完整覆盖。
+ * 内部管理端的叶子路由 key（AppLayout 壳层内渲染）。
+ * 供应商门户的路由单独拆到 portalLeafRouteKeys：两端壳层不同
+ * （管理端深色侧边栏 / 门户顶部导航），且分别受用户类型守卫约束。
  */
 export const leafRouteKeys = [
   // 00 系统管理
@@ -265,11 +266,6 @@ export const leafRouteKeys = [
   // 03 采购管理
   'purchaseRequest',
   'purchaseOrder',
-  // 04 供应商端
-  'supplierPortalHome',
-  'supplierPortalMyOrders',
-  'supplierPortalToShip',
-  'supplierPortalShipments',
   // 05 审批中心
   'approvalPending',
   'approvalProcessed',
@@ -296,8 +292,21 @@ export const leafRouteKeys = [
   'receivingInspection',
 ] as const
 
-/** 叶子路由 key 的联合类型，用于在注册表中做编译期完整性约束。 */
+/**
+ * 供应商门户的叶子路由 key：挂在 SupplierPortalLayout 壳层下，
+ * 仅供应商类型用户可访问（内部员工访问会被类型守卫重定向回工作台）。
+ */
+export const portalLeafRouteKeys = [
+  'supplierPortalHome',
+  'supplierPortalMyOrders',
+  'supplierPortalToShip',
+  'supplierPortalShipments',
+] as const
+
+/** 内部叶子路由 key 的联合类型，用于在注册表中做编译期完整性约束。 */
 export type LeafRouteKey = (typeof leafRouteKeys)[number]
+/** 门户叶子路由 key 的联合类型。 */
+export type PortalLeafRouteKey = (typeof portalLeafRouteKeys)[number]
 
 /**
  * 登录页路径。独立于 AppLayout 壳层渲染（无侧边栏/顶栏），也不进入

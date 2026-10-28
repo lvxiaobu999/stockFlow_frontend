@@ -2,12 +2,24 @@ import { Suspense, lazy } from 'react'
 import type { ComponentType, LazyExoticComponent } from 'react'
 import { Navigate, Route, Routes } from 'react-router-dom'
 import { RouteFallback } from '@/components/feedback/RouteFallback'
-import { leafRouteKeys, routeMeta, LOGIN_PATH, PROFILE_PATH, type LeafRouteKey } from '@/config/routes'
+import {
+  leafRouteKeys,
+  portalLeafRouteKeys,
+  routeMeta,
+  LOGIN_PATH,
+  PROFILE_PATH,
+  type LeafRouteKey,
+  type PortalLeafRouteKey,
+} from '@/config/routes'
 import { RequireAuth } from '@/features/auth/components/RequireAuth'
 import { RequirePermission } from '@/features/auth/components/RequirePermission'
+import { RequireUserType } from '@/features/auth/components/RequireUserType'
 import { getMenuPermissionCode } from '@/features/auth/utils/permissions'
+import { homePathForUser } from '@/features/auth/utils/homePath'
 import AppLayout from '@/layouts/AppLayout'
+import SupplierPortalLayout from '@/layouts/SupplierPortalLayout'
 import PlaceholderPage from '@/pages/PlaceholderPage'
+import { useAuthStore } from '@/stores/authStore'
 
 // 首页工作台单独懒加载，减少首屏主包体积。
 const DashboardPage = lazy(() => import('@/pages/DashboardPage'))
@@ -17,9 +29,9 @@ const LoginPage = lazy(() => import('@/pages/auth/LoginPage'))
 const ProfilePage = lazy(() => import('@/pages/profile/ProfilePage'))
 
 /**
- * 叶子路由 key -> 懒加载页面组件的注册表。
+ * 叶子路由 key -> 懒加载页面组件的注册表（内部端 + 门户端统一注册）。
  *
- * 使用 `satisfies Record<LeafRouteKey, ...>` 强制覆盖所有叶子 key：
+ * 使用 `satisfies` 交集约束强制覆盖两组叶子 key：
  * 在 routes.ts 新增叶子路由后，若漏写对应页面组件，会在编译期报错。
  */
 const pageComponents = {
@@ -56,12 +68,20 @@ const pageComponents = {
   reportPayable: lazy(() => import('@/pages/report/PayableReportPage')),
   receivingReceipt: lazy(() => import('@/pages/receiving/ReceiptPage')),
   receivingInspection: lazy(() => import('@/pages/receiving/InspectionPage')),
-} satisfies Record<LeafRouteKey, LazyExoticComponent<ComponentType>>
+} satisfies Record<LeafRouteKey | PortalLeafRouteKey, LazyExoticComponent<ComponentType>>
+
+/** 根路径重定向：按登录用户类型分流到管理端工作台 / 供应商门户首页。 */
+function RootRedirect() {
+  const currentUser = useAuthStore((state) => state.currentUser)
+  return <Navigate to={homePathForUser(currentUser?.userType ?? 'staff')} replace />
+}
 
 /**
  * 应用路由表：
  * - /login 独立于壳层渲染；
- * - 其余页面嵌套在 AppLayout 内，整体由 RequireAuth 守卫认证态；
+ * - 内部管理端页面嵌套在 AppLayout 内，由 RequireAuth + RequireUserType(staff)
+ *   依次兜住「未登录」与「供应商误入」；
+ * - 供应商门户页面嵌套在 SupplierPortalLayout 内，对称地要求 supplier 类型；
  * - 每个叶子页面再包一层 RequirePermission（菜单权限码由路径推导），
  *   兜住「直接输入 URL」的越权访问；404 兜底页不做权限控制。
  */
@@ -76,15 +96,18 @@ export default function AppRoutes() {
           </Suspense>
         }
       />
+      {/* ── 内部管理端 ──────────────────────────────────────────────── */}
       <Route
         element={
           <RequireAuth>
-            <AppLayout />
+            <RequireUserType userType="staff">
+              <AppLayout />
+            </RequireUserType>
           </RequireAuth>
         }
       >
-        {/* 根路径重定向到工作台，保证直接访问 "/" 也能落到首页。 */}
-        <Route path="/" element={<Navigate to={routeMeta.dashboard.path} replace />} />
+        {/* 根路径按用户类型重定向，保证直接访问 "/" 也能落到所属端首页。 */}
+        <Route path="/" element={<RootRedirect />} />
         <Route
           path={routeMeta.dashboard.path}
           element={
@@ -127,6 +150,41 @@ export default function AppRoutes() {
           path="*"
           element={
             <PlaceholderPage title="页面不存在" description="请从左侧菜单选择一个有效的功能页面。" module="404" />
+          }
+        />
+      </Route>
+      {/* ── 供应商门户（浅色顶部导航壳层，仅供应商类型用户可访问）────────── */}
+      <Route
+        element={
+          <RequireAuth>
+            <RequireUserType userType="supplier">
+              <SupplierPortalLayout />
+            </RequireUserType>
+          </RequireAuth>
+        }
+      >
+        {portalLeafRouteKeys.map((key) => {
+          const meta = routeMeta[key]
+          const Page = pageComponents[key]
+          return (
+            <Route
+              key={meta.path}
+              path={meta.path}
+              element={
+                <RequirePermission code={getMenuPermissionCode(meta.path)}>
+                  <Suspense fallback={<RouteFallback />}>
+                    <Page />
+                  </Suspense>
+                </RequirePermission>
+              }
+            />
+          )
+        })}
+        {/* 门户内的未知路径单独兜底（显式前缀优先级高于内部 404 的通配），引导回门户。 */}
+        <Route
+          path="supplier-portal/*"
+          element={
+            <PlaceholderPage title="页面不存在" description="请从顶部导航选择一个有效的功能页面。" module="404" />
           }
         />
       </Route>
