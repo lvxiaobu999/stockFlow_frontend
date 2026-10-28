@@ -155,11 +155,11 @@ export function AppSidebar() {
           items={toMenuItems(visibleItems, collapsed ? COLLAPSED_MENU_ICON_SIZE : MENU_ICON_SIZE, badges)}
           /* triggerSubMenuAction='click' */
         />
-        {!collapsed ? (
+        {/* {!collapsed ? (
           <div className="sider-footer">
             <span className="status-dot" /> 数据服务正常 · v{__APP_VERSION__}
           </div>
-        ) : null}
+        ) : null} */}
       </Sider>
     </ConfigProvider>
   )
