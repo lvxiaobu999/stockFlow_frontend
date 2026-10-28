@@ -16,6 +16,7 @@ import { usersMock, DEMO_SUPPLIER_USERNAME, getRoleUserCount } from './users'
 import { warehousesMock } from './warehouses'
 import { approvalRecordsMock, nextPurchaseRequestCode, purchaseRequestsMock } from './purchaseRequests'
 import { nextPurchaseOrderCode, purchaseOrdersMock } from './purchaseOrders'
+import { shipmentsMock } from './shipments'
 
 /**
  * Mock 数据集不变量：这些约束是「演示账号体系自洽」的底线，
@@ -100,11 +101,24 @@ describe('mock 数据集不变量', () => {
     }
   })
 
-  it('供应商演示账号存在且解析出的权限仅含工作台', () => {
+  it('供应商演示账号存在且权限仅限门户菜单与订单动作', () => {
     const supplier = usersMock.find((user) => user.username === DEMO_SUPPLIER_USERNAME)
     expect(supplier).toBeDefined()
     const permissions = resolvePermissions(supplier!)
-    expect(permissions).toContain('menu:dashboard')
+    // 门户四页菜单码齐全，且持有确认 / 拒绝 / 发货三个裁决动作。
+    for (const code of [
+      'menu:supplier-portal:home',
+      'menu:supplier-portal:my-orders',
+      'menu:supplier-portal:to-ship',
+      'menu:supplier-portal:shipments',
+      'supplier-portal:order:confirm',
+      'supplier-portal:order:reject',
+      'supplier-portal:order:ship',
+    ]) {
+      expect(permissions).toContain(code)
+    }
+    // 不持有管理端任何菜单与通配权限。
+    expect(permissions).not.toContain('menu:dashboard')
     expect(permissions).not.toContain('*')
   })
 
@@ -340,20 +354,20 @@ describe('审批中心数据集不变量', () => {
 })
 
 describe('采购订单数据集不变量', () => {
-  it('订单 10 条覆盖全部状态，编号唯一且 = PO + 创建日期 + 4 位全局递增流水', () => {
-    expect(purchaseOrdersMock).toHaveLength(10)
+  it('订单 13 条覆盖全部状态，编号唯一且 = PO + 创建日期 + 4 位全局递增流水', () => {
+    expect(purchaseOrdersMock).toHaveLength(13)
     const byStatus = (status: PurchaseOrderStatus) => purchaseOrdersMock.filter((item) => item.status === status)
     expect(byStatus('draft')).toHaveLength(1)
-    expect(byStatus('pending_supplier')).toHaveLength(1)
-    expect(byStatus('confirmed')).toHaveLength(2)
-    expect(byStatus('shipped')).toHaveLength(1)
+    expect(byStatus('pending_supplier')).toHaveLength(2)
+    expect(byStatus('confirmed')).toHaveLength(3)
+    expect(byStatus('shipped')).toHaveLength(2)
     expect(byStatus('received')).toHaveLength(1)
     expect(byStatus('inspected')).toHaveLength(1)
     expect(byStatus('completed')).toHaveLength(1)
     expect(byStatus('rejected')).toHaveLength(1)
     expect(byStatus('cancelled')).toHaveLength(1)
-    expect(new Set(purchaseOrdersMock.map((item) => item.id)).size).toBe(10)
-    expect(new Set(purchaseOrdersMock.map((item) => item.code)).size).toBe(10)
+    expect(new Set(purchaseOrdersMock.map((item) => item.id)).size).toBe(13)
+    expect(new Set(purchaseOrdersMock.map((item) => item.code)).size).toBe(13)
     for (const item of purchaseOrdersMock) {
       expect(item.code).toMatch(/^PO\d{8}\d{4}$/)
       // 编码日期段必须与创建日期一致，流水段为正整数。
@@ -367,7 +381,7 @@ describe('采购订单数据集不变量', () => {
   })
 
   it('下一编号 = 今天日期 + 全局最大流水 + 1', () => {
-    expect(nextPurchaseOrderCode()).toBe(`PO${dayjs().format('YYYYMMDD')}0011`)
+    expect(nextPurchaseOrderCode()).toBe(`PO${dayjs().format('YYYYMMDD')}0014`)
   })
 
   it('明细引用真实商品且不重复：行金额 = 数量 × 成交价，总额 = Σ 行金额', () => {
@@ -494,6 +508,64 @@ describe('采购订单数据集不变量', () => {
     }
     for (const supplier of suppliersMock) {
       expect(supplier.pendingOrderCount).toBe(pendingBySupplier.get(supplier.id) ?? 0)
+    }
+  })
+
+  it('门户演示账号（hongyuan01 → sup-001）名下有可完整演示的订单组合', () => {
+    const supplier = suppliersMock.find((item) => item.portalUsername === DEMO_SUPPLIER_USERNAME)
+    expect(supplier).toBeDefined()
+    expect(supplier!.status).toBe(1)
+    const ownOrders = purchaseOrdersMock.filter((order) => order.supplierId === supplier!.id)
+    const statuses = new Set(ownOrders.map((order) => order.status))
+    // 首页统计 / 待确认动作 / 待发货动作 / 发货记录四类演示都依赖以下状态。
+    for (const status of ['completed', 'pending_supplier', 'confirmed', 'shipped'] as const) {
+      expect(statuses.has(status)).toBe(true)
+    }
+  })
+})
+
+describe('发货单数据集不变量', () => {
+  it('每张已发货订单恰有一张发货单，反之亦然；单号 = SH + 发货日期 + 全局递增流水', () => {
+    const shippedOrders = purchaseOrdersMock.filter((order) => order.shippedAt !== undefined)
+    expect(shipmentsMock).toHaveLength(shippedOrders.length)
+    const orderIdSet = new Set(shipmentsMock.map((shipment) => shipment.orderId))
+    expect(orderIdSet.size).toBe(shipmentsMock.length)
+    for (const order of shippedOrders) {
+      expect(orderIdSet.has(order.id)).toBe(true)
+    }
+    expect(new Set(shipmentsMock.map((shipment) => shipment.code)).size).toBe(shipmentsMock.length)
+    for (const shipment of shipmentsMock) {
+      expect(shipment.code).toMatch(/^SH\d{8}\d{4}$/)
+      // 编码日期段必须与发货日期一致。
+      expect(shipment.code.startsWith(`SH${dayjs(shipment.shippedAt).format('YYYYMMDD')}`)).toBe(true)
+    }
+    // 流水全局随发货时间递增。
+    const byTime = [...shipmentsMock].sort((a, b) => a.shippedAt.localeCompare(b.shippedAt))
+    const seqs = byTime.map((shipment) => Number(shipment.code.slice(-4)))
+    expect([...seqs].sort((a, b) => a - b)).toEqual(seqs)
+  })
+
+  it('发货明细快照 = 订单明细（MVP 一次发清：实发 = 订购），供应商快照一致', () => {
+    const orderById = new Map(purchaseOrdersMock.map((order) => [order.id, order]))
+    for (const shipment of shipmentsMock) {
+      const order = orderById.get(shipment.orderId)!
+      expect(order).toBeDefined()
+      expect(shipment.orderCode).toBe(order.code)
+      expect(shipment.supplierId).toBe(order.supplierId)
+      expect(shipment.supplierName).toBe(order.supplierName)
+      expect(shipment.shippedAt).toBe(order.shippedAt)
+      expect(shipment.items).toHaveLength(order.items.length)
+      for (const [index, item] of shipment.items.entries()) {
+        const orderItem = order.items[index]
+        expect(item.productId).toBe(orderItem.productId)
+        expect(item.orderedQty).toBe(orderItem.quantity)
+        expect(item.shippedQty).toBe(orderItem.quantity)
+        expect(item.shippedQty).toBeLessThanOrEqual(item.orderedQty)
+      }
+      // 操作人 = 供应商账号展示名（公司名），且该供应商确实开通了门户。
+      const supplier = suppliersMock.find((item) => item.id === shipment.supplierId)
+      expect(shipment.createdByName).toBe(supplier!.name)
+      expect(supplier!.portalUsername).toBeDefined()
     }
   })
 })

@@ -71,7 +71,7 @@ export const roleMock: RoleRecord[] = [
 
 /**
  * 各角色的默认权限码集合（权限树的初始勾选状态）。
- * admin 持有 '*' 通配；supplier 本期仅保留工作台（供应商门户属后续模块）。
+ * admin 持有 '*' 通配；supplier 仅持有供应商门户的菜单与动作码。
  * 保存角色权限后，handler 会把新集合写回这里，会话期内保持一致。
  */
 export const rolePermissionCodes: Record<string, string[]> = {
@@ -138,7 +138,17 @@ export const rolePermissionCodes: Record<string, string[]> = {
     'menu:report:purchase-summary',
     'menu:report:payable',
   ],
-  supplier: ['menu:dashboard'],
+  // 供应商角色仅持有门户菜单码与订单裁决按钮码（数据在门户接口按账号过滤，
+  // 不依赖按钮码以外的数据权限）；不持有管理端任何菜单。
+  supplier: [
+    'menu:supplier-portal:home',
+    'menu:supplier-portal:my-orders',
+    'menu:supplier-portal:to-ship',
+    'menu:supplier-portal:shipments',
+    'supplier-portal:order:confirm',
+    'supplier-portal:order:reject',
+    'supplier-portal:order:ship',
+  ],
 }
 
 /**
@@ -239,8 +249,21 @@ export const permissionTreeMock: PermissionNode[] = [
     type: 'menu',
     children: [
       { key: 'menu:supplier-portal:home', title: '首页', type: 'menu' },
-      { key: 'menu:supplier-portal:my-orders', title: '我的采购订单', type: 'menu' },
-      { key: 'menu:supplier-portal:to-ship', title: '待发货', type: 'menu' },
+      {
+        key: 'menu:supplier-portal:my-orders',
+        title: '我的采购订单',
+        type: 'menu',
+        children: [
+          { key: 'supplier-portal:order:confirm', title: '确认订单', type: 'button' },
+          { key: 'supplier-portal:order:reject', title: '拒绝订单', type: 'button' },
+        ],
+      },
+      {
+        key: 'menu:supplier-portal:to-ship',
+        title: '待发货',
+        type: 'menu',
+        children: [{ key: 'supplier-portal:order:ship', title: '填写发货', type: 'button' }],
+      },
       { key: 'menu:supplier-portal:shipments', title: '发货记录', type: 'menu' },
     ],
   },

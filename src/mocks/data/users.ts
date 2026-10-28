@@ -104,7 +104,7 @@ const staffSeeds: StaffSeed[] = [
   { username: 'lupei', name: '陆萍', roleCode: 'finance', department: '财务部', lastLoginAt: '2026-09-18 13:21:00' },
 ]
 
-/** 供应商账号种子：userType=supplier，登录会被引导至供应商门户（本期拦截提示）。 */
+/** 供应商账号种子：userType=supplier，登录后由前端按类型分流至供应商门户。 */
 const supplierNames = [
   '杭州宏远纸业',
   '上海本墨实业有限公司',

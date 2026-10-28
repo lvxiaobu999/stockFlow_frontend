@@ -13,15 +13,17 @@ import { suppliersMock } from './suppliers'
 import { findUserByUsername } from './users'
 
 /**
- * 采购订单 Mock 数据：10 条订单覆盖全部状态（草稿 1 / 待供应商确认 1 / 已确认 2 /
- * 已发货 1 / 已收货 1 / 已验收 1 / 已完成 1 / 已拒绝 1 / 已作废 1）。
+ * 采购订单 Mock 数据：13 条订单覆盖全部状态（草稿 1 / 待供应商确认 2 / 已确认 3 /
+ * 已发货 2 / 已收货 1 / 已验收 1 / 已完成 1 / 已拒绝 1 / 已作废 1）。
  *
  * - 编号 PO + 创建日期 + 4 位流水，全局流水随创建日期递增；
  * - 「已生成订单」申请（pr-001 / pr-002）的订单由申请种子**派生**：
  *   订单编码 / 明细 / 金额全部取自申请记录（成交单价 = 申请参考价），
  *   创建时间 = 申请审批通过后 2 小时（申请创建 +26h），保证两侧数据集自洽；
- * - 其余 8 条为线下补录订单（requestId 为空，数据库设计允许 request_id NULL），
+ * - 其余 11 条为线下补录订单（requestId 为空，数据库设计允许 request_id NULL），
  *   明细引用 productsMock 真实商品，成交价默认取采购参考价（已完成单含一笔议价）；
+ * - 供应商 sup-001（杭州宏远纸业，门户演示账号 hongyuan01）名下固定 4 条订单
+ *   （已完成 / 待确认 / 已确认 / 已发货），保证门户首页、待办与发货记录可完整演示；
  * - 生命周期时间由「创建时间 + 小时偏移」确定性生成；
  * - 供应商在途订单数（pendingOrderCount）由本数据集回写，口径见文件末尾。
  */
@@ -130,6 +132,21 @@ const standaloneOrderSeeds: Array<{ created: string; seed: StandaloneOrderSeed }
     },
   },
   {
+    created: '2026-10-08 14:00:00',
+    seed: {
+      purchaser: 'linmin',
+      supplierId: 'sup-001',
+      status: 'shipped',
+      expectedDate: '2026-10-20',
+      remark: '月度复印纸补货，供应商已发出',
+      items: [
+        { prodIndex: 1, quantity: 80, unitPrice: 92 },
+        { prodIndex: 4, quantity: 40, unitPrice: 45 },
+      ],
+      steps: { sentAt: 2, confirmedAt: 22, shippedAt: 40 },
+    },
+  },
+  {
     created: '2026-10-09 11:00:00',
     seed: {
       purchaser: 'zhaolei',
@@ -153,6 +170,31 @@ const standaloneOrderSeeds: Array<{ created: string; seed: StandaloneOrderSeed }
       expectedDate: '2026-10-28',
       items: [{ prodIndex: 21, quantity: 20, unitPrice: 89 }],
       steps: { sentAt: 5, confirmedAt: 47 },
+    },
+  },
+  {
+    // 演示账号 hongyuan01（sup-001）名下的待确认单：门户「确认 / 拒绝」入口的演示数据。
+    created: '2026-10-14 09:00:00',
+    seed: {
+      purchaser: 'linmin',
+      supplierId: 'sup-001',
+      status: 'pending_supplier',
+      expectedDate: '2026-11-05',
+      remark: '季度框架协议续单，请尽快确认交期',
+      items: [{ prodIndex: 0, quantity: 60, unitPrice: 122 }],
+      steps: { sentAt: 3 },
+    },
+  },
+  {
+    // 演示账号名下的已确认单：门户「待发货 → 填写发货」入口的演示数据。
+    created: '2026-10-18 10:00:00',
+    seed: {
+      purchaser: 'zhangwei',
+      supplierId: 'sup-001',
+      status: 'confirmed',
+      expectedDate: '2026-11-10',
+      items: [{ prodIndex: 2, quantity: 30, unitPrice: 136 }],
+      steps: { sentAt: 2, confirmedAt: 20 },
     },
   },
 ]
