@@ -7,7 +7,7 @@ import { PurchaseRequestStatusTag } from '@/features/purchase/components/Purchas
 import { usePurchaseRequestDetail } from '@/features/purchase/hooks/usePurchaseRequests'
 import { usePurchaseRequestMutations } from '@/features/purchase/hooks/usePurchaseRequestMutations'
 import { APPROVAL_ACTION_NAMES, type ApprovalRecord } from '@/features/approval/types'
-import type { PurchaseRequestItem } from '@/features/purchase/types'
+import type { PurchaseRequestItem, PurchaseRequestRecord } from '@/features/purchase/types'
 import { calcTotalAmount } from '@/features/purchase/utils/purchaseRequest'
 import { formatDateTime, formatMoney } from '@/utils'
 
@@ -16,6 +16,10 @@ interface PurchaseRequestDetailViewProps {
   onBack: () => void
   /** 进入编辑（草稿编辑 / 被拒重提）；仅在申请人侧操作可见时使用。 */
   onEdit?: () => void
+  /** 生成订单（已通过态）：跳转采购订单页；未提供时隐藏该入口。 */
+  onGenerateOrder?: () => void
+  /** 查看订单（已生成订单态）：按订单 id 投影跳转采购订单详情；未提供时隐藏该入口。 */
+  onViewOrder?: (record: PurchaseRequestRecord) => void
   /** 审批中心注入的裁决面板：渲染在概要卡之后，注入后隐藏申请人侧操作。 */
   actionPanel?: ReactNode
   /** 只读详情（我已审批回看）：隐藏申请人侧状态操作。 */
@@ -44,6 +48,8 @@ export function PurchaseRequestDetailView({
   id,
   onBack,
   onEdit,
+  onGenerateOrder,
+  onViewOrder,
   actionPanel,
   readonly,
 }: PurchaseRequestDetailViewProps) {
@@ -57,6 +63,8 @@ export function PurchaseRequestDetailView({
   const canSubmit = showStatusCta && has('purchase:request:submit')
   const canWithdraw = showStatusCta && has('purchase:request:withdraw')
   const canDelete = showStatusCta && has('purchase:request:delete')
+  const canGenerateOrder = showStatusCta && has('purchase:request:generate-order') && Boolean(onGenerateOrder)
+  const canViewOrder = showStatusCta && Boolean(onViewOrder)
 
   if (isLoading) {
     return (
@@ -153,8 +161,16 @@ export function PurchaseRequestDetailView({
             修改重提
           </Button>
         ) : null
+      case 'approved':
+        // 生成订单跳转采购订单页（订单模块落地后的正式入口）。
+        return canGenerateOrder ? (
+          <Button type="primary" onClick={onGenerateOrder}>
+            生成订单
+          </Button>
+        ) : null
+      case 'ordered':
+        return canViewOrder ? <Button onClick={() => onViewOrder?.(data)}>查看订单</Button> : null
       default:
-        // 生成订单 / 查看订单属采购订单模块，该模块上线前仅提示占位。
         return null
     }
   })()

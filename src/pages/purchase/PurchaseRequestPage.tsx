@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Alert, App, Button, Card, Space, Spin, Tabs } from 'antd'
 import { PlusOutlined, ReloadOutlined } from '@ant-design/icons'
+import { useNavigate } from 'react-router-dom'
 import { routeMeta } from '@/config/routes'
 import { PageHeader } from '@/components/common/PageHeader'
 import { usePermissions } from '@/features/auth/hooks/usePermissions'
@@ -68,12 +69,13 @@ function PurchaseRequestEditView({ id, onCancel, onSaved }: PurchaseRequestEditV
 
 /**
  * 采购申请页面：列表 / 表单 / 详情四态页内切换（与供应商页同模式）。
- * 列表状态筛选由页签承载并联动分页复位；生成订单 / 查看订单是
- * 采购订单模块的前置动作，订单模块上线前统一提示占位。
+ * 列表状态筛选由页签承载并联动分页复位；「生成订单 / 查看订单」深链跳转
+ * 采购订单页（?action=create&fromRequest=…、?action=detail&id=…）。
  */
 export default function PurchaseRequestPage() {
   const { message } = App.useApp()
   const { has } = usePermissions()
+  const navigate = useNavigate()
   const [view, setView] = useState<PurchaseRequestView>({ mode: 'list' })
   const [filters, setFilters] = useState<PurchaseRequestFilters>({})
   const [status, setStatus] = useState<PurchaseRequestStatus | 'all'>('all')
@@ -96,9 +98,17 @@ export default function PurchaseRequestPage() {
     setPagination((prev) => ({ ...prev, current: 1 }))
   }
 
-  /** 生成订单 / 查看订单：采购订单模块上线前的占位提示。 */
-  const handleOrderPlaceholder = (record: PurchaseRequestRecord) => {
-    message.info(`采购订单模块尚未上线，请先通过采购申请 ${record.code} 跟踪进度`)
+  /** 生成订单：深链跳转采购订单页，带入来源申请（订单页取申请详情预填明细）。 */
+  const handleGenerateOrder = (record: PurchaseRequestRecord) => {
+    navigate(`${routeMeta.purchaseOrder.path}?action=create&fromRequest=${record.id}`)
+  }
+  /** 查看订单：按订单 id 深链跳转采购订单详情（id 为生成订单时的投影）。 */
+  const handleViewOrder = (record: PurchaseRequestRecord) => {
+    if (!record.orderedOrderId) {
+      message.warning(`申请 ${record.code} 的关联订单信息缺失，请从采购订单列表查找 ${record.orderedOrderCode ?? ''}`)
+      return
+    }
+    navigate(`${routeMeta.purchaseOrder.path}?action=detail&id=${record.orderedOrderId}`)
   }
 
   // ── 表单 / 详情视图 ────────────────────────────────────────────────
@@ -127,6 +137,11 @@ export default function PurchaseRequestPage() {
         id={view.id}
         onBack={() => setView({ mode: 'list' })}
         onEdit={() => setView({ mode: 'edit', id: view.id })}
+        onGenerateOrder={() => {
+          // 详情内点「生成订单」：按当前详情 id 深链跳转订单页（与列表行同口径）。
+          navigate(`${routeMeta.purchaseOrder.path}?action=create&fromRequest=${view.id}`)
+        }}
+        onViewOrder={handleViewOrder}
       />
     )
   }
@@ -197,8 +212,8 @@ export default function PurchaseRequestPage() {
                 onError: (mutationError) => message.error(mutationError.message),
               })
             }
-            onGenerateOrder={handleOrderPlaceholder}
-            onViewOrder={handleOrderPlaceholder}
+            onGenerateOrder={handleGenerateOrder}
+            onViewOrder={handleViewOrder}
           />
         )}
       </Card>
