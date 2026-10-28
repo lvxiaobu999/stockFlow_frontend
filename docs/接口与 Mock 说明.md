@@ -44,21 +44,21 @@ export const productQueryKeys = {
 
 ### 接口一览
 
-| Method   | Path                                                        | 说明（错误码为业务 code）                                                                      |
-| -------- | ----------------------------------------------------------- | ---------------------------------------------------------------------------------------------- |
-| POST     | `/auth/login`                                               | `{username,password}` → `AuthSession`；401 账号或密码错误；403 账号已停用 / 供应商账号请走门户 |
-| POST     | `/auth/logout`                                              | 退出登录                                                                                       |
-| GET      | `/auth/me`                                                  | 会话恢复；401 未登录或已过期                                                                   |
-| PUT      | `/auth/profile`                                             | `{name,phone,email?}` → `CurrentUser`                                                          |
-| PUT      | `/auth/password`                                            | `{oldPassword,newPassword}`；400 原密码不正确                                                  |
-| GET/POST | `/system/user/page`、`/system/user`                         | 用户分页（keyword/status/roleCode/userType）/ 新建（4002 账号已存在）                          |
-| PUT      | `/system/user/:id`、`/:id/password`、`/:id/status`          | 编辑（账号不可改）/ 重置密码（空 = 默认密码）/ 停用启用（4004 内置 admin 不可停用）            |
-| GET/POST | `/system/role/page`、`/system/role/options`、`/system/role` | 角色分页（name/status）/ 启用角色下拉 / 新建（4002 编码重复）                                  |
-| PUT      | `/system/role/:id`、`/:id/status`                           | 编辑（编码不可改）/ 停用启用（4003 内置角色不可停用）                                          |
-| GET      | `/system/permission/tree`                                   | 全量权限树（菜单 → 按钮，key 即权限码）                                                        |
-| GET/PUT  | `/system/role/:id/permissions`                              | 读取 / 保存角色权限码集合（`{permissionCodes}`）                                               |
-| GET      | `/system/role/:id/users`                                    | 拥有该角色的用户                                                                               |
-| GET      | `/system/operation-log/page`、`/options`                    | 日志分页（operator/module/时间范围/关键字）/ 筛选下拉                                          |
+| Method   | Path                                                        | 说明（错误码为业务 code）                                                                                       |
+| -------- | ----------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------- |
+| POST     | `/auth/login`                                               | `{username,password}` → `AuthSession`；401 账号或密码错误；403 账号已停用（供应商账号登录成功后按类型分流门户） |
+| POST     | `/auth/logout`                                              | 退出登录                                                                                                        |
+| GET      | `/auth/me`                                                  | 会话恢复；401 未登录或已过期                                                                                    |
+| PUT      | `/auth/profile`                                             | `{name,phone,email?}` → `CurrentUser`                                                                           |
+| PUT      | `/auth/password`                                            | `{oldPassword,newPassword}`；400 原密码不正确                                                                   |
+| GET/POST | `/system/user/page`、`/system/user`                         | 用户分页（keyword/status/roleCode/userType）/ 新建（4002 账号已存在）                                           |
+| PUT      | `/system/user/:id`、`/:id/password`、`/:id/status`          | 编辑（账号不可改）/ 重置密码（空 = 默认密码）/ 停用启用（4004 内置 admin 不可停用）                             |
+| GET/POST | `/system/role/page`、`/system/role/options`、`/system/role` | 角色分页（name/status）/ 启用角色下拉 / 新建（4002 编码重复）                                                   |
+| PUT      | `/system/role/:id`、`/:id/status`                           | 编辑（编码不可改）/ 停用启用（4003 内置角色不可停用）                                                           |
+| GET      | `/system/permission/tree`                                   | 全量权限树（菜单 → 按钮，key 即权限码）                                                                         |
+| GET/PUT  | `/system/role/:id/permissions`                              | 读取 / 保存角色权限码集合（`{permissionCodes}`）                                                                |
+| GET      | `/system/role/:id/users`                                    | 拥有该角色的用户                                                                                                |
+| GET      | `/system/operation-log/page`、`/options`                    | 日志分页（operator/module/时间范围/关键字）/ 筛选下拉                                                           |
 
 注意：**分页 `data.total` 是「总页数」不是总行数**，前端用 `toPaginationTotal(total, pageSize)` 换算后再交给 antd 分页，文案显示「共 N 页」。
 
@@ -71,7 +71,7 @@ export const productQueryKeys = {
 | `admin`      | 管理员（内置） | 权限 `*` 全可见；不可被停用                      |
 | `zhangwei`   | 采购员         | 无系统管理菜单；直接访问 `/system/user` 显示 403 |
 | `chenjie`    | 财务（停用）   | 登录提示「账号已被停用」                         |
-| `hongyuan01` | 供应商         | 管理端登录被拦截，提示走供应商门户               |
+| `hongyuan01` | 供应商         | 登录后按类型分流至供应商门户（见下文门户模块）   |
 
 重置密码的默认新密码为 `Zq@20260920`（8-20 位且含字母数字，与前端校验规则一致）。
 
@@ -281,4 +281,50 @@ export const productQueryKeys = {
 3. 删除草稿 / 作废联动来源申请回退「已通过」并清空投影——需求未明确该联动，取「可重新生成订单」口径（呼应需求「供应商拒绝后可重新选供应商 / 重新发送 / 作废」）；
 4. 供应商确认 / 拒绝 / 发货、收货 / 验收、付款结清的推进动作分属供应商端、收货验收与付款模块，本模块状态列与时间线只读展示；详情「关联单据」区在对应模块上线前显示占位；
 5. 新建 / 从申请生成沿用 `purchase:request:generate-order` 权限码，未单设 `purchase:order:create`（生成动作归属申请侧）；
-6. 订单列表 / 详情暂不提供跳转申请详情的反向深链（申请页视图态为组件内 state，不支持查询参数直达；后续申请页参数化后再放开）。
+6. 订单列表 / 详情暂不提供跳转申请详情的反向深链（申请页视图态为域内 state，不支持查询参数直达；后续申请页参数化后再放开）。
+
+## 「供应商门户」模块契约（已实现）
+
+覆盖路线图第 7 步：供应商登录、查看订单、确认 / 拒绝、发货。同一登录页按 `userType` 分流——供应商登录成功后前端跳转 `/supplier-portal`，管理端路由与门户路由互斥（`RequireUserType` 类型门卫：供应商访问管理端路由、内部员工访问门户路由均重定向回各自首页）。门户为独立外壳（绿色主题顶栏 + 横向导航：首页 / 我的采购订单 / 待发货 / 发货记录），**视图态由 URL 查询参数驱动**（`?action=detail&id=…`、`?action=ship&id=…`，支持首页「去处理」、列表「填写发货」深链）。状态机推进 `pending_supplier → confirmed / rejected`、`confirmed → shipped`——**状态一律由服务端业务动作驱动**，每次动作同步回写供应商档案的待确认 / 待发货数与审计日志；采购方侧（收货 / 验收 / 付款结清）属收货验收与付款模块，门户对 shipped 之后的状态只读展示。
+
+### 接口一览
+
+| Method | Path                        | 说明（错误码为业务 code）                                                                                                                    |
+| ------ | --------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
+| GET    | `/portal/summary`           | 首页统计：我的订单数 / 待确认 / 待发货 / 本月发货（待确认 + 待发货由订单状态实时聚合，非档案静态投影）                                       |
+| GET    | `/portal/order/page`        | 我的采购订单分页：keyword 匹配订单编号、status、createdFrom/To；**supplierId 由服务端按会话注入，前端无该参数**                              |
+| GET    | `/portal/order/:id`         | 订单详情（4701 不存在或不属于当前供应商）                                                                                                    |
+| POST   | `/portal/order/:id/confirm` | 确认订单：pending_supplier → confirmed，预计发货时间选填（回写订单 `promisedShipDate`）；4702 状态不允许                                     |
+| POST   | `/portal/order/:id/reject`  | 拒绝订单：pending_supplier → rejected，原因必填（4001 缺失），回写订单 `rejectReason` 供采购员查看；4702 同上                                |
+| POST   | `/portal/order/:id/ship`    | 发货：confirmed → shipped，生成发货单并回写订单 shippedAt；返回 `{order, shipment}` 供前端双单据号一并提示；明细必须覆盖订单全部商品（4703） |
+| GET    | `/portal/shipment/page`     | 发货记录分页：keyword 匹配发货单号 / 关联订单号                                                                                              |
+
+所有 `/portal/*` 接口均要求供应商会话：401 未登录、403 非供应商账号、4704 供应商档案缺失或停用（档案被管理端停用后门户整体不可用）。分页口径同前（`data.total` 为总页数）。
+
+### 错误码分段
+
+- `47xx` 门户：4701 单据不存在或不属于当前供应商、4702 状态不允许该操作、4703 发货明细不合法（空明细 / 含非本单商品 / 商品重复 / 数量非 1~订购数的整数 / 未覆盖全部商品）、4704 供应商档案缺失或停用；
+- 通用段沿用 `40xx`（4001 参数缺失——拒绝原因等）。
+
+### 权限码
+
+- 菜单：`menu:supplier-portal:{home,my-orders,to-ship,shipments}`（供应商角色预置）；
+- 按钮：`supplier-portal:order:{confirm,reject,ship}`（供应商角色预置，行内操作按状态机 × 权限码双重收敛）；
+- admin 持 `*` 但 `userType` 为内部员工，会被路由类型门卫拦在门户之外——**类型门卫优先于权限码**；供应商角色不含任何管理端菜单码，同理进不了管理端。
+
+### 演示数据约定
+
+- 演示账号 `hongyuan01 / 123456`（杭州宏远纸业，sup-001）：登录后直达门户首页，四张统计卡片与「待处理订单」预览均有数据；
+- 采购订单数据集增至 13 条：为 sup-001 新增 3 条（待确认 2026-10-14 / 已确认 2026-10-18 / 已发货 2026-10-08），加上原有 1 条已完成，覆盖门户全部演示状态；编号仍按创建日期全局递增，与既有 10 条不冲突；已发货单落在当月（10 月），保证「本月发货」非零；
+- 发货单由已发货订单**派生**（1:1，MVP 一次发清）：编码 `SH`+发货日期+4 位流水，实发数量 = 订购数量，物流公司 / 单号取种子映射（顺丰 / 德邦 / 京东）；新增发货（门户发货动作）的编码全局递增（`nextShipmentCode`）；
+- 数据集不变量见 `src/mocks/data/dataset.test.ts`「门户演示账号」与「发货单数据集不变量」（发货单 ↔ 已发货订单 1:1、编码规则、实发快照、供应商快照）。
+
+### 需求偏差记录
+
+1. 需求的「供应商独立登录入口」落地为统一登录页按 `userType` 分流（同一账号体系，登录成功后前端跳转门户）；
+2. 供应商与订单的归属以 `suppliers.portalUsername === session.user.username` 关联（真实设计为 user.supplier_id 外键），后端落地时应改为外键口径；
+3. 发货数量可按商品调整（1 ~ 订购数，默认 = 订购数），但 MVP 一次发清、不跟踪部分发货多次——发货单与订单 1:1；
+4. 发货单无独立详情接口，记录列表以展开行承载明细（订购 / 实发对照）；
+5. 门户顶栏仅「退出登录」，无个人中心（供应商资料由管理端供应商档案维护）；
+6. `promisedShipDate`（供应商预计发货时间）为门户确认动作的扩展字段，挂在采购订单实体上（数据库订单表未含此列）；
+7. 管理端采购订单详情的「关联单据」暂不展示发货单（内部订单详情与门户发货记录尚未互链，收货模块落地时一并接入）。
