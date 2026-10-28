@@ -20,21 +20,18 @@ export const authHandlers = [
       appendSystemLog(user ? user.name : '未知账号', '登录失败', `${username} · 密码错误`, false)
       return httpError(401, '账号或密码错误')
     }
-    // 停用用户不能登录；供应商账号归属供应商门户，从管理端登录时拦截引导。
+    // 停用用户不能登录；供应商与员工共用登录入口，落地页由前端按用户类型分流。
     if (user.status === 0) {
       appendSystemLog(user.name, '登录失败', `${username} · 账号已停用`, false)
       return httpError(403, '账号已被停用，请联系管理员')
-    }
-    if (user.userType === 'supplier') {
-      appendSystemLog(user.name, '登录失败', `${username} · 供应商账号从管理端登录`, false)
-      return httpError(403, '供应商账号请从供应商门户登录')
     }
 
     // 登录成功：刷新最后登录时间并写入 mock 会话（等价于后端种下登录 Cookie）。
     user.lastLoginAt = dayjs().format('YYYY-MM-DD HH:mm:ss')
     const session = { user: toCurrentUser(user), permissions: resolvePermissions(user) }
     setMockSession(session)
-    appendSystemLog(user.name, '登录', 'Web 端')
+    // 审计日志区分登录入口：供应商账号落到门户端，员工落到管理端。
+    appendSystemLog(user.name, '登录', user.userType === 'supplier' ? '供应商门户' : 'Web 端')
     return ok(session)
   }),
 
