@@ -38,8 +38,25 @@ function logSupplier(operator: string, action: string, targetSummary: string): v
   appendLog({ operator, module: 'supplier', action, targetSummary })
 }
 
-/** 供应商接口：分页、新建、编辑、启停、详情与近 5 笔订单演示数据。 */
+/** 供应商接口：下拉 options、分页、新建、编辑、启停、详情与近 5 笔订单演示数据。 */
 export const supplierHandlers = [
+  // options 必须注册在 /:id 之前，否则 "options" 会被当作 id 匹配。
+  http.get('*/api/supplier/options', async () => {
+    await delay(280)
+    if (!getMockSession()) return httpError(401, '登录已过期，请重新登录')
+    // 仅启用供应商可被新采购订单引用（停用供应商的历史单据不受影响）。
+    return ok(
+      suppliersMock
+        .filter((supplier) => supplier.status === 1)
+        .map((supplier) => ({
+          id: supplier.id,
+          code: supplier.code,
+          name: supplier.name,
+          contactPerson: supplier.contactPerson,
+        })),
+    )
+  }),
+
   http.get('*/api/supplier/page', async ({ request }) => {
     await delay(280)
     if (!getMockSession()) return httpError(401, '登录已过期，请重新登录')

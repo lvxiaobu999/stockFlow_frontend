@@ -8,7 +8,8 @@ import { usersMock } from './users'
  *
  * - 门户账号按「供应商名称 ↔ user 表供应商账号的姓名（公司名）」一对一匹配
  *   （真实设计为 user.supplier_id 外键，见 docs 偏差记录）；
- * - 3 家停用供应商；在途订单数与累计采购额为采购模块落地前的投影字段。
+ * - 3 家停用供应商；在途订单数由采购订单数据集回写（见 purchaseOrders.ts），
+ *   累计采购额为对账 / 付款模块落地前的投影字段。
  */
 
 interface SupplierSeed {
@@ -279,13 +280,13 @@ export function nextSupplierCode(): string {
   return `SUP${String(maxSeq + 1).padStart(4, '0')}`
 }
 
-/** 近期订单状态池：采购模块状态枚举定稿前的中性过渡口径。 */
+/** 近期订单状态池：与采购订单状态字典同口径（详情页演示用）。 */
 const RECENT_ORDER_STATUSES: { statusCode: string; statusName: string }[] = [
   { statusCode: 'completed', statusName: '已完成' },
   { statusCode: 'received', statusName: '已收货' },
-  { statusCode: 'sent', statusName: '已发货' },
-  { statusCode: 'pending_send', statusName: '待发货' },
-  { statusCode: 'cancelled', statusName: '已取消' },
+  { statusCode: 'shipped', statusName: '已发货' },
+  { statusCode: 'pending_supplier', statusName: '待供应商确认' },
+  { statusCode: 'cancelled', statusName: '已作废' },
 ]
 
 /**

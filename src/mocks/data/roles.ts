@@ -88,6 +88,8 @@ export const rolePermissionCodes: Record<string, string[]> = {
     'menu:purchase:order',
     'purchase:order:update',
     'purchase:order:send',
+    'purchase:order:delete',
+    'purchase:order:void',
     'menu:product:category',
     'menu:product:list',
     'menu:supplier:list',
@@ -225,6 +227,8 @@ export const permissionTreeMock: PermissionNode[] = [
         children: [
           { key: 'purchase:order:update', title: '编辑', type: 'button' },
           { key: 'purchase:order:send', title: '发送供应商', type: 'button' },
+          { key: 'purchase:order:delete', title: '删除草稿', type: 'button' },
+          { key: 'purchase:order:void', title: '作废', type: 'button' },
         ],
       },
     ],

@@ -5,7 +5,7 @@ import type { ApprovalAction, ApprovalRecord } from '@/features/approval/types'
 import { isTaxNoValid } from '@/features/supplier/utils/validators'
 import { PRODUCT_UNITS } from '@/features/product/types'
 import { isPriceValid } from '@/features/product/utils/validators'
-import type { PurchaseRequestStatus } from '@/features/purchase/types'
+import type { PurchaseOrderStatus, PurchaseRequestStatus } from '@/features/purchase/types'
 import { categoryMock } from './categories'
 import { productsMock } from './products'
 import { resolvePermissions } from './auth'
@@ -15,6 +15,7 @@ import { suppliersMock } from './suppliers'
 import { usersMock, DEMO_SUPPLIER_USERNAME, getRoleUserCount } from './users'
 import { warehousesMock } from './warehouses'
 import { approvalRecordsMock, nextPurchaseRequestCode, purchaseRequestsMock } from './purchaseRequests'
+import { nextPurchaseOrderCode, purchaseOrdersMock } from './purchaseOrders'
 
 /**
  * Mock 数据集不变量：这些约束是「演示账号体系自洽」的底线，
@@ -334,6 +335,165 @@ describe('审批中心数据集不变量', () => {
       // 结论与单据状态自洽：approve → 已通过 / 已生成订单，reject → 已拒绝。
       if (record.action === 'approve') expect(['approved', 'ordered']).toContain(request.status)
       else expect(request.status).toBe('rejected')
+    }
+  })
+})
+
+describe('采购订单数据集不变量', () => {
+  it('订单 10 条覆盖全部状态，编号唯一且 = PO + 创建日期 + 4 位全局递增流水', () => {
+    expect(purchaseOrdersMock).toHaveLength(10)
+    const byStatus = (status: PurchaseOrderStatus) => purchaseOrdersMock.filter((item) => item.status === status)
+    expect(byStatus('draft')).toHaveLength(1)
+    expect(byStatus('pending_supplier')).toHaveLength(1)
+    expect(byStatus('confirmed')).toHaveLength(2)
+    expect(byStatus('shipped')).toHaveLength(1)
+    expect(byStatus('received')).toHaveLength(1)
+    expect(byStatus('inspected')).toHaveLength(1)
+    expect(byStatus('completed')).toHaveLength(1)
+    expect(byStatus('rejected')).toHaveLength(1)
+    expect(byStatus('cancelled')).toHaveLength(1)
+    expect(new Set(purchaseOrdersMock.map((item) => item.id)).size).toBe(10)
+    expect(new Set(purchaseOrdersMock.map((item) => item.code)).size).toBe(10)
+    for (const item of purchaseOrdersMock) {
+      expect(item.code).toMatch(/^PO\d{8}\d{4}$/)
+      // 编码日期段必须与创建日期一致，流水段为正整数。
+      expect(item.code.startsWith(`PO${dayjs(item.createdAt).format('YYYYMMDD')}`)).toBe(true)
+      expect(Number(item.code.slice(-4))).toBeGreaterThan(0)
+    }
+    // 流水全局随创建时间递增（编号排序 = 创建时间排序）。
+    const byTime = [...purchaseOrdersMock].sort((a, b) => a.createdAt.localeCompare(b.createdAt))
+    const seqs = byTime.map((item) => Number(item.code.slice(-4)))
+    expect([...seqs].sort((a, b) => a - b)).toEqual(seqs)
+  })
+
+  it('下一编号 = 今天日期 + 全局最大流水 + 1', () => {
+    expect(nextPurchaseOrderCode()).toBe(`PO${dayjs().format('YYYYMMDD')}0011`)
+  })
+
+  it('明细引用真实商品且不重复：行金额 = 数量 × 成交价，总额 = Σ 行金额', () => {
+    for (const order of purchaseOrdersMock) {
+      expect(order.items.length).toBeGreaterThan(0)
+      const productIds = new Set<string>()
+      for (const item of order.items) {
+        const product = productsMock.find((candidate) => candidate.id === item.productId)
+        expect(product).toBeDefined()
+        expect(productIds.has(item.productId)).toBe(false)
+        productIds.add(item.productId)
+        // 快照字段与商品档案一致。
+        expect(item.productCode).toBe(product!.code)
+        expect(item.productName).toBe(product!.name)
+        expect(item.spec).toBe(product!.spec)
+        expect(item.unit).toBe(product!.unit)
+        expect(item.unitPrice).toBeGreaterThanOrEqual(0)
+        expect(item.amount).toBe(Math.round(item.quantity * item.unitPrice * 100) / 100)
+      }
+      const sum = order.items.reduce((total, item) => total + item.amount, 0)
+      expect(order.totalAmount).toBe(Math.round(sum * 100) / 100)
+    }
+  })
+
+  it('供应商与采购员均为真实数据，供应商名称随档案快照', () => {
+    const supplierById = new Map(suppliersMock.map((item) => [item.id, item]))
+    const staffById = new Map(usersMock.filter((user) => user.userType === 'staff').map((user) => [user.id, user]))
+    for (const order of purchaseOrdersMock) {
+      const supplier = supplierById.get(order.supplierId)
+      expect(supplier).toBeDefined()
+      expect(order.supplierName).toBe(supplier!.name)
+      const staff = staffById.get(order.purchaserId)
+      expect(staff).toBeDefined()
+      expect(order.purchaserName).toBe(staff!.name)
+    }
+  })
+
+  it('关联订单与申请互为镜像：申请已生成订单、编码双向一致、明细数量与单价取申请参考价', () => {
+    const requestById = new Map(purchaseRequestsMock.map((item) => [item.id, item]))
+    const linkedOrders = purchaseOrdersMock.filter((order) => order.requestId)
+    expect(linkedOrders).toHaveLength(2)
+    for (const order of linkedOrders) {
+      const request = requestById.get(order.requestId!)
+      expect(request).toBeDefined()
+      expect(request!.status).toBe('ordered')
+      // 投影字段双向一致：申请记订单，订单记申请。
+      expect(request!.orderedOrderId).toBe(order.id)
+      expect(request!.orderedOrderCode).toBe(order.code)
+      expect(order.requestCode).toBe(request!.code)
+      // 派生明细与申请明细逐行对应，成交单价 = 申请参考价。
+      expect(order.items).toHaveLength(request!.items.length)
+      for (const [index, item] of order.items.entries()) {
+        const requestItem = request!.items[index]
+        expect(item.productId).toBe(requestItem.productId)
+        expect(item.quantity).toBe(requestItem.quantity)
+        expect(item.unitPrice).toBe(requestItem.referencePrice)
+      }
+      // 采购员 = 申请人（生成动作由申请人发起）。
+      expect(order.purchaserId).toBe(request!.applicantId)
+    }
+    // 反向：每条 ordered 申请都能找到 carrying 投影的订单。
+    for (const request of purchaseRequestsMock.filter((item) => item.status === 'ordered')) {
+      expect(purchaseOrdersMock.some((order) => order.id === request.orderedOrderId)).toBe(true)
+    }
+  })
+
+  it('生命周期时间戳与状态自洽：主链节点按序到达，拒绝 / 作废终态携带原因', () => {
+    for (const order of purchaseOrdersMock) {
+      const times: Array<[string | undefined, string]> = [
+        [order.createdAt, '创建'],
+        [order.sentAt, '发送'],
+        [order.confirmedAt, '确认'],
+        [order.shippedAt, '发货'],
+        [order.receivedAt, '收货'],
+        [order.inspectedAt, '验收'],
+        [order.completedAt, '完成'],
+      ]
+      // 主链上已到达的节点必须按状态机顺序递增。
+      const reached = times.filter(([time]) => time !== undefined).map(([time]) => time as string)
+      expect([...reached].sort()).toEqual(reached)
+      // 节点不能超前于状态（如 confirmed 订单不应有收货时间）。
+      const statusDepth: Record<PurchaseOrderStatus, number> = {
+        draft: 1,
+        pending_supplier: 2,
+        confirmed: 3,
+        shipped: 4,
+        received: 5,
+        inspected: 6,
+        completed: 7,
+        rejected: 2,
+        cancelled: 2,
+      }
+      const depth = statusDepth[order.status]
+      if (depth < 3) expect(order.confirmedAt).toBeUndefined()
+      if (depth < 4) expect(order.shippedAt).toBeUndefined()
+      if (depth < 5) expect(order.receivedAt).toBeUndefined()
+      if (depth < 6) expect(order.inspectedAt).toBeUndefined()
+      if (depth < 7) expect(order.completedAt).toBeUndefined()
+      // 发送节点：草稿未发送，其余状态都已发送（拒绝 / 作废发生在发送之后）。
+      if (order.status === 'draft') expect(order.sentAt).toBeUndefined()
+      else expect(order.sentAt).toBeDefined()
+      // 拒绝 / 作废终态必须成对携带时间与原因。
+      if (order.status === 'rejected') {
+        expect(order.rejectedAt).toBeDefined()
+        expect(order.rejectReason).toBeTruthy()
+      } else {
+        expect(order.rejectedAt).toBeUndefined()
+      }
+      if (order.status === 'cancelled') {
+        expect(order.cancelledAt).toBeDefined()
+        expect(order.cancelReason).toBeTruthy()
+      } else {
+        expect(order.cancelledAt).toBeUndefined()
+      }
+    }
+  })
+
+  it('供应商在途订单数已由订单数据集回写（待确认 + 已确认 + 已发货）', () => {
+    const pendingBySupplier = new Map<string, number>()
+    for (const order of purchaseOrdersMock) {
+      if (['pending_supplier', 'confirmed', 'shipped'].includes(order.status)) {
+        pendingBySupplier.set(order.supplierId, (pendingBySupplier.get(order.supplierId) ?? 0) + 1)
+      }
+    }
+    for (const supplier of suppliersMock) {
+      expect(supplier.pendingOrderCount).toBe(pendingBySupplier.get(supplier.id) ?? 0)
     }
   })
 })

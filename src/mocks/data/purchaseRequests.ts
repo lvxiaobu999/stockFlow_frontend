@@ -12,7 +12,9 @@ import { findUserByUsername } from './users'
  * - 明细引用 productsMock 真实商品（价格取采购参考价），保证与商品数据集自洽；
  * - 审批流水（approvalRecordsMock）由各申请的生命周期确定性生成，
  *   审批中心模块落地后迁移归口（当前「通过 / 拒绝」结论均为演示数据）；
- * - 「已生成订单」记录的 orderedOrderCode 为采购订单模块落地前的投影演示。
+ * - 「已生成订单」记录的 orderedOrderId / orderedOrderCode 与采购订单数据集
+ *   （mocks/data/purchaseOrders.ts）互为镜像：订单由申请种子派生，
+ *   订单 id 按 ordered 申请顺序 po-001 递增（两侧推导规则必须一致）。
  */
 
 /** 明细种子：prodIndex 对应 productsMock 下标，数量为采购需求量。 */
@@ -51,7 +53,7 @@ const requestSeeds: RequestSeed[] = [
     ],
     status: 'ordered',
     steps: ['create', 'submit', 'approve'],
-    orderedOrderCode: 'PO202609060003',
+    orderedOrderCode: 'PO202609060001',
   },
   {
     title: '新员工笔记本电脑采购（市场部 3 人）',
@@ -61,7 +63,7 @@ const requestSeeds: RequestSeed[] = [
     items: [{ prodIndex: 16, quantity: 3, remark: '含原装包与鼠标' }],
     status: 'ordered',
     steps: ['create', 'submit', 'approve'],
-    orderedOrderCode: 'PO202609080002',
+    orderedOrderCode: 'PO202609070002',
   },
   {
     title: '仓储清洁用品月度补充',
@@ -203,6 +205,9 @@ export const purchaseRequestsMock: PurchaseRequestRecord[] = requestSeeds
     const applicant = findUserByUsername(seed.applicant)
     if (!applicant) throw new Error(`采购申请种子引用了不存在的用户：${seed.applicant}`)
 
+    // 「已生成订单」的订单 id 投影：按 ordered 申请顺序递增（与订单数据集派生规则一致）。
+    const orderedSeq = requestSeeds.slice(0, index + 1).filter((item) => item.status === 'ordered').length
+
     // 创建日期按序号递增（09-05 起），编号 = PR + 创建日期 + 4 位流水。
     const createdAt = dayjs('2026-09-04 10:00:00')
       .add(index + 1, 'day')
@@ -247,6 +252,7 @@ export const purchaseRequestsMock: PurchaseRequestRecord[] = requestSeeds
       status: seed.status,
       items,
       submittedAt: withdrawn ? undefined : submittedAt,
+      orderedOrderId: seed.orderedOrderCode ? `po-${String(orderedSeq).padStart(3, '0')}` : undefined,
       orderedOrderCode: seed.orderedOrderCode,
       createdAt,
       updatedAt: submittedAt ?? createdAt,
