@@ -8,6 +8,7 @@ import type {
 } from '@/features/receiving/types'
 import { INSPECTION_RESULT_META } from '@/features/receiving/types'
 import { getMockSession } from '@/mocks/data/auth'
+import { applyInboundForInspection } from '@/mocks/data/inventory'
 import { inspectionsMock, nextInspectionCode, receiptsMock } from '@/mocks/data/receiving'
 import { appendLog } from '@/mocks/data/operation-logs'
 import { purchaseOrdersMock, syncSupplierPendingOrderCounts } from '@/mocks/data/purchaseOrders'
@@ -20,8 +21,8 @@ import { businessError, httpError, ok } from '@/mocks/utils'
  *
  * 单据为预建口径：发货即有待收货单、收货即有待验收单，列表天然承载
  * 「待收货 / 待验收」工作台；单据提交后不可修改（冲正 / 退货归第二阶段）。
- * 合格数量入库待库存模块（路线图第 9 步）落地后写入 inventory_transaction，
- * 本模块仅记录验收结论（演示契约，偏差记录见 docs/接口与 Mock 说明.md）。
+ * 提交验收即入库：合格数量自动在总仓生成入库流水并累加库存（库存模块实现，
+ * applyInboundForInspection），无二次「确认入库」。
  *
  * 错误码分段（48xx）：4801 单据不存在、4802 状态不允许该操作、
  * 4803 收货明细不合法、4804 验收明细不合法；通用段沿用 40xx（4001 参数缺失）。
@@ -307,11 +308,12 @@ export const receivingHandlers = [
       receipt.updatedAt = now
     }
 
-    // 订单联动进入已验收（后续付款结清属付款模块）；合格数量入库待库存模块落地后
-    // 写入 inventory_transaction（路线图第 9 步），此处仅记录验收结论。
+    // 订单联动进入已验收（后续付款结清属付款模块）；合格数量即时入库：
+    // 在总仓生成入库流水并累加库存，商品 totalStock 与仓库统计投影随之回写。
     order.status = 'inspected'
     order.inspectedAt = now
     order.updatedAt = now
+    applyInboundForInspection(inspection)
     logReceiving(
       admission.session.user.name,
       '确认验收',

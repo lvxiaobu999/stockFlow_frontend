@@ -126,6 +126,8 @@ export const rolePermissionCodes: Record<string, string[]> = {
     'inventory:warehouse:update',
     'inventory:warehouse:toggle-status',
     'menu:inventory:current-stock',
+    // 库存调整（期初录入 / 纠错）：需求口径为仓库 / 管理员可发起。
+    'inventory:stock:adjust',
     'menu:inventory:stock-transactions',
     'menu:inventory:stock-alert',
     'menu:purchase:order',
@@ -176,7 +178,12 @@ export const permissionTreeMock: PermissionNode[] = [
           { key: 'inventory:warehouse:toggle-status', title: '停用 / 启用', type: 'button' },
         ],
       },
-      { key: 'menu:inventory:current-stock', title: '当前库存', type: 'menu' },
+      {
+        key: 'menu:inventory:current-stock',
+        title: '当前库存',
+        type: 'menu',
+        children: [{ key: 'inventory:stock:adjust', title: '库存调整', type: 'button' }],
+      },
       { key: 'menu:inventory:stock-transactions', title: '库存流水', type: 'menu' },
       {
         key: 'menu:inventory:stock-alert',

@@ -1,16 +1,12 @@
 import dayjs from 'dayjs'
 import { delay, http } from 'msw'
-import type {
-  ProductListParams,
-  ProductPayload,
-  ProductRecord,
-  ProductStockTransaction,
-} from '@/features/product/types'
+import type { ProductListParams, ProductPayload, ProductRecord } from '@/features/product/types'
 import type { EnableStatus } from '@/types/common'
 import { getMockSession } from '@/mocks/data/auth'
 import { collectDescendantIds, findCategoryById } from '@/mocks/data/categories'
 import { appendLog } from '@/mocks/data/operation-logs'
-import { buildRecentTransactions, buildStockSummary, nextProductCode, productsMock } from '@/mocks/data/products'
+import { buildProductRecentTransactions, buildProductStockSummary } from '@/mocks/data/inventory'
+import { nextProductCode, productsMock } from '@/mocks/data/products'
 import { paginate } from '@/mocks/pagination'
 import { businessError, httpError, ok } from '@/mocks/utils'
 
@@ -182,8 +178,8 @@ export const productHandlers = [
     if (!getMockSession()) return httpError(401, '登录已过期，请重新登录')
     const record = productsMock.find((item) => item.id === params.id)
     if (!record) return businessError(4201, '商品不存在或已被移除')
-    // 库存模块落地前的演示契约：按启用仓确定性拆分。
-    return ok(buildStockSummary(record))
+    // 库存模块落地后由真实库存行组装（mocks/data/inventory.ts）。
+    return ok(buildProductStockSummary(record))
   }),
 
   http.get('*/api/product/:id/stock-transactions', async ({ request, params }) => {
@@ -192,8 +188,7 @@ export const productHandlers = [
     const record = productsMock.find((item) => item.id === params.id)
     if (!record) return businessError(4201, '商品不存在或已被移除')
     const limit = Number(new URL(request.url).searchParams.get('limit') ?? '5')
-    const transactions: ProductStockTransaction[] = buildRecentTransactions(record, limit)
-    return ok(transactions)
+    return ok(buildProductRecentTransactions(record, limit))
   }),
 
   http.get('*/api/product/:id', async ({ params }) => {

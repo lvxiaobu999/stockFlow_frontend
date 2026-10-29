@@ -1,14 +1,14 @@
 import dayjs from 'dayjs'
-import type { ProductRecord, ProductStockSummary, ProductStockTransaction, ProductUnit } from '@/features/product/types'
+import type { ProductRecord, ProductUnit } from '@/features/product/types'
 import type { EnableStatus } from '@/types/common'
-import { warehousesMock } from './warehouses'
 
 /**
  * 商品 Mock 数据：30 条商品档案，覆盖 10 个分类、5 种计量单位。
  *
  * - 8 条 totalStock < safetyStock 的预警商品（红色行 + 预警标签的演示数据）；
  * - 3 条停用商品；编码 SP-YYYYMMDD-NNNN（按建档日期 + 全局流水）。
- * totalStock 为「当前总库存」投影字段，库存模块落地前由本数据集静态提供。
+ * totalStock 为「当前总库存」投影字段，种子值与库存推导一致，
+ * 库存变更后由库存模块 syncInventoryProjections 按流水实时回写。
  */
 
 interface ProductSeed {
@@ -359,73 +359,4 @@ export function findProductByName(name: string): ProductRecord | undefined {
 /** 按 id 查找商品（采购明细等单据引用校验使用）。 */
 export function findProductById(id: string): ProductRecord | undefined {
   return productsMock.find((item) => item.id === id)
-}
-
-/** 各启用仓的库存拆分权重（总仓为主仓），仅用于演示数据的确定性生成。 */
-const STOCK_SPLIT_WEIGHTS = [0.45, 0.25, 0.18, 0.12]
-
-/**
- * 构建商品「库存汇总（按仓库）」演示数据（库存模块落地后由真实接口替换）。
- * 各仓库存由总库存按权重整数拆分，尾差归入最后一仓，保证合计与 totalStock 一致。
- */
-export function buildStockSummary(product: ProductRecord): ProductStockSummary {
-  const enabledWarehouses = warehousesMock.filter((warehouse) => warehouse.status === 1)
-  let allocated = 0
-  const rows = enabledWarehouses.map((warehouse, index) => {
-    const isLast = index === enabledWarehouses.length - 1
-    const stock = isLast
-      ? Math.max(product.totalStock - allocated, 0)
-      : Math.floor(product.totalStock * (STOCK_SPLIT_WEIGHTS[index] ?? 0))
-    allocated += stock
-    return {
-      warehouseId: warehouse.id,
-      warehouseName: warehouse.name,
-      stock,
-      // 安全库存为商品级、全仓共用（需求 P1-6 口径），逐仓判定预警。
-      warning: stock < product.safetyStock,
-      lastChangeAt: dayjs('2026-09-20 12:00:00')
-        .subtract(index * 9 + 3, 'hour')
-        .format('YYYY-MM-DD HH:mm:ss'),
-    }
-  })
-  return {
-    totalStock: rows.reduce((sum, row) => sum + row.stock, 0),
-    safetyStock: product.safetyStock,
-    rows,
-  }
-}
-
-/** 演示流水的操作人池（仓储相关员工）。 */
-const TRANSACTION_OPERATORS = ['刘洋', '吴军', '郑涛', '张伟']
-
-/**
- * 从当前总库存反推最近 N 条库存流水（库存模块落地后由真实接口替换）。
- * 数量与方向按商品 id 确定性生成，多条请求结果一致。
- */
-export function buildRecentTransactions(product: ProductRecord, limit = 5): ProductStockTransaction[] {
-  const transactions: ProductStockTransaction[] = []
-  let running = product.totalStock
-  const seedBase = product.id.split('-').reduce((sum, part) => sum + Number(part || 0), 0)
-  for (let index = 0; index < limit; index += 1) {
-    // 沿时间向过去回溯：最新一条之后的库存应等于当前总库存。
-    const type: ProductStockTransaction['type'] = index % 2 === 0 ? 'in' : 'out'
-    const quantity = 5 + ((seedBase + index * 13) % 36)
-    transactions.push({
-      id: `${product.id}-txn-${index + 1}`,
-      occurredAt: dayjs('2026-09-20 11:00:00')
-        .subtract(index * 26, 'hour')
-        .format('YYYY-MM-DD HH:mm:ss'),
-      type,
-      quantity,
-      afterStock: running,
-      // 入库关联采购订单，出库关联出库单（采购/出库模块定稿后同步调整）。
-      relatedOrderNo:
-        type === 'in'
-          ? `PO-2026-03${String((index * 11 + seedBase) % 90).padStart(2, '0')}`
-          : `CK-2026-01${String((index * 17 + seedBase) % 80).padStart(2, '0')}`,
-      operator: TRANSACTION_OPERATORS[(index + seedBase) % TRANSACTION_OPERATORS.length],
-    })
-    running = Math.max(type === 'in' ? running - quantity : running + quantity, 0)
-  }
-  return transactions
 }

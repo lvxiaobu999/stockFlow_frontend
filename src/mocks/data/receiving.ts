@@ -34,7 +34,7 @@ const PARTIAL_INSPECTION_SEEDS: Record<
   string,
   Array<{ qualifiedQty: number; unqualifiedQty: number; remark?: string }>
 > = {
-  // po-006（格致 USB-C 扩展坞等）：第 1 行 2 件外包装破损 → 部分合格演示。
+  // po-006（维达商用擦手纸等）：第 1 行 2 件外包装破损 → 部分合格演示。
   'po-006': [
     { qualifiedQty: 38, unqualifiedQty: 2, remark: '其中 2 件外包装破损，仅记录不入库' },
     { qualifiedQty: 20, unqualifiedQty: 0 },

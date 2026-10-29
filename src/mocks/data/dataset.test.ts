@@ -18,6 +18,8 @@ import { approvalRecordsMock, nextPurchaseRequestCode, purchaseRequestsMock } fr
 import { nextPurchaseOrderCode, purchaseOrdersMock } from './purchaseOrders'
 import { shipmentsMock } from './shipments'
 import { inspectionsMock, receiptsMock } from './receiving'
+import { DEFAULT_WAREHOUSE, inventoriesMock, stockTransactionsMock } from './inventory'
+import { calcStockAmount, isStockWarning } from '@/features/inventory/utils/stock'
 
 /**
  * Mock 数据集不变量：这些约束是「演示账号体系自洽」的底线，
@@ -680,5 +682,109 @@ describe('收货与验收数据集不变量', () => {
     for (const inspection of inspectionsMock) {
       expect(['received', 'inspected', 'completed']).toContain(orderById.get(inspection.orderId)!.status)
     }
+  })
+})
+
+describe('库存数据集不变量', () => {
+  it('库存行 (仓库, 商品) 唯一且数量非负，各商品跨仓合计 = 商品档案 totalStock', () => {
+    const keys = new Set<string>()
+    for (const row of inventoriesMock) {
+      const key = `${row.warehouseId}|${row.productId}`
+      expect(keys.has(key)).toBe(false)
+      keys.add(key)
+      expect(row.quantity).toBeGreaterThanOrEqual(0)
+    }
+    for (const product of productsMock) {
+      const total = inventoriesMock
+        .filter((row) => row.productId === product.id)
+        .reduce((sum, row) => sum + row.quantity, 0)
+      expect(total).toBe(product.totalStock)
+    }
+    // 停用仓（深圳）不参与库存：无任何库存行。
+    const disabledWarehouses = warehousesMock.filter((warehouse) => warehouse.status === 0)
+    for (const warehouse of disabledWarehouses) {
+      expect(inventoriesMock.some((row) => row.warehouseId === warehouse.id)).toBe(false)
+    }
+  })
+
+  it('流水 quantityAfter 链自洽：逐条累加成立，链末端 = 当前库存', () => {
+    const grouped = new Map<string, typeof stockTransactionsMock>()
+    for (const row of stockTransactionsMock) {
+      const key = `${row.warehouseId}|${row.productId}`
+      const list = grouped.get(key) ?? []
+      list.push(row)
+      grouped.set(key, list)
+    }
+    for (const [key, rows] of grouped) {
+      const sorted = [...rows].sort((a, b) => a.createdAt.localeCompare(b.createdAt))
+      // 首条之前的库存为 0：quantityAfter = 前值 + 变动，逐条成立。
+      let running = 0
+      for (const row of sorted) {
+        running += row.quantity
+        expect(row.quantityAfter).toBe(running)
+      }
+      const [warehouseId, productId] = key.split('|')
+      const inventory = inventoriesMock.find((row) => row.warehouseId === warehouseId && row.productId === productId)
+      expect(inventory).toBeDefined()
+      expect(inventory!.quantity).toBe(running)
+    }
+    // 流水只增不改：id 全局唯一。
+    expect(new Set(stockTransactionsMock.map((row) => row.id)).size).toBe(stockTransactionsMock.length)
+  })
+
+  it('验收入库口径：已落结论验收单的合格数量在总仓生成入库流水，待验收单无流水', () => {
+    const inboundRows = stockTransactionsMock.filter((row) => row.type === 'inbound')
+    for (const inspection of inspectionsMock) {
+      for (const item of inspection.items) {
+        const matched = inboundRows.filter(
+          (row) => row.bizId === inspection.orderId && row.productId === item.productId,
+        )
+        if (inspection.inspectedAt === undefined || item.qualifiedQty === 0) {
+          // 待验收（po-001）或该行零合格：不允许出现入库流水。
+          expect(matched).toHaveLength(0)
+        } else {
+          expect(matched).toHaveLength(1)
+          expect(matched[0].warehouseId).toBe(DEFAULT_WAREHOUSE.id)
+          expect(matched[0].quantity).toBe(item.qualifiedQty)
+          expect(matched[0].bizCode).toBe(inspection.orderCode)
+        }
+      }
+    }
+    // 调整流水 = 期初建账 + 运行期调整；种子期没有出库流水（销售出库属第二阶段）。
+    expect(stockTransactionsMock.some((row) => row.type === 'outbound')).toBe(false)
+    expect(stockTransactionsMock.filter((row) => row.type === 'adjust').every((row) => row.quantity > 0)).toBe(true)
+  })
+
+  it('仓库统计列由库存流水推导回写：SKU 数 / 数量 / 金额三侧一致', () => {
+    for (const warehouse of warehousesMock) {
+      const rows = inventoriesMock.filter((row) => row.warehouseId === warehouse.id)
+      const quantity = rows.reduce((sum, row) => sum + row.quantity, 0)
+      const amount = rows.reduce((sum, row) => {
+        const product = productsMock.find((item) => item.id === row.productId)!
+        return sum + calcStockAmount(row.quantity, product.purchasePrice)
+      }, 0)
+      expect(warehouse.stockSkuCount).toBe(rows.filter((row) => row.quantity > 0).length)
+      expect(warehouse.stockQuantity).toBe(quantity)
+      expect(warehouse.stockAmount).toBe(Math.round(amount * 100) / 100)
+    }
+  })
+
+  it('安全库存预警覆盖全部 ≤ 口径的库存行，红双喜 A3（8 ≤ 10）仍在预警演示集', () => {
+    const alertKeys = new Set(
+      inventoriesMock
+        .filter((row) => {
+          const product = productsMock.find((item) => item.id === row.productId)!
+          return isStockWarning(row.quantity, product.safetyStock)
+        })
+        .map((row) => `${row.warehouseId}|${row.productId}`),
+    )
+    expect(alertKeys.size).toBeGreaterThanOrEqual(8)
+    // po-003 红双喜 A3 订购量已与商品总库存（8 箱）对齐：期初 + 入库 = 总库存。
+    const hongshuangxi = productsMock.find((product) => product.name === '红双喜复印纸 A3 70g')!
+    expect(hongshuangxi.totalStock).toBe(8)
+    const po003 = purchaseOrdersMock.find(
+      (order) => order.status === 'completed' && order.items.some((item) => item.productId === hongshuangxi.id),
+    )!
+    expect(po003.items.find((item) => item.productId === hongshuangxi.id)!.quantity).toBe(8)
   })
 })

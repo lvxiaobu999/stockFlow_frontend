@@ -59,7 +59,8 @@ const standaloneOrderSeeds: Array<{ created: string; seed: StandaloneOrderSeed }
       remark: '季度框架协议价（A4 复印纸议价 125/箱）',
       items: [
         { prodIndex: 0, quantity: 40, unitPrice: 125 },
-        { prodIndex: 2, quantity: 20, unitPrice: 138 },
+        // 红双喜 A3 订购量与商品总库存（8 箱）对齐：期初建账 + 验收入库 = 总库存。
+        { prodIndex: 2, quantity: 8, unitPrice: 138 },
       ],
       steps: { sentAt: 4, confirmedAt: 26, shippedAt: 54, receivedAt: 78, inspectedAt: 102, completedAt: 240 },
     },
