@@ -27,3 +27,13 @@ export function useWarehouses(params: WarehouseListParams) {
     refetch: query.refetch,
   }
 }
+
+/** 仓库下拉选项：仅启用仓（停用仓不再发生库存变动，历史流水仍可见）。 */
+export function useWarehouseOptions() {
+  const { data, isLoading, error } = useWarehouses({ current: 1, pageSize: 99 })
+  const options = (data?.lists ?? []).map((warehouse) => ({
+    label: warehouse.name,
+    value: warehouse.id,
+  }))
+  return { data: options, isLoading, error }
+}
