@@ -28,8 +28,8 @@ const TRANSACTION_TYPE_META = {
 /**
  * 商品详情视图：概要信息 + 库存汇总（按仓库）+ 最近库存流水。
  *
- * 库存两块为库存模块落地前的演示契约（数据由 mock 确定性生成），
- * 接口路径与结构即最终契约，届时无需改动本视图。
+ * 库存两块由库存模块提供真实数据（库存行 / 流水联表组装），
+ * 接口路径与结构即最终契约。
  */
 export function ProductDetailView({ id, categoryPathOf, onBack, onEdit }: ProductDetailViewProps) {
   const { has } = usePermissions()
@@ -92,6 +92,12 @@ export function ProductDetailView({ id, categoryPathOf, onBack, onEdit }: Produc
       dataIndex: 'occurredAt',
       width: 170,
       render: (value: string) => <Typography.Text type="secondary">{formatDateTime(value)}</Typography.Text>,
+    },
+    {
+      title: '仓库',
+      dataIndex: 'warehouseName',
+      width: 100,
+      render: (value?: string) => value ?? '—',
     },
     {
       title: '类型',

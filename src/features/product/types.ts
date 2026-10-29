@@ -63,7 +63,7 @@ export interface ProductRecord {
   salePrice?: number
   /** 安全库存：当前总库存低于该值时触发预警。 */
   safetyStock: number
-  /** 当前总库存（跨仓合计；库存模块落地前的投影字段）。 */
+  /** 当前总库存（跨仓合计，由库存模块按流水推导回写）。 */
   totalStock: number
   /** 主图（URL 或 dataURL；mock 阶段为内存 dataURL，刷新丢失）。 */
   imageUrl?: string
@@ -114,12 +114,12 @@ export interface ProductPayload {
   status: EnableStatus
 }
 
-/** 库存汇总行：商品在单个仓库的库存状态（库存模块投影字段）。 */
+/** 库存汇总行：商品在单个仓库的库存状态（库存模块实时数据）。 */
 export interface ProductStockSummaryRow {
   warehouseId: string
   warehouseName: string
   stock: number
-  /** true=低于安全库存（预警）。安全库存为商品级，全仓共用（需求 P1-6 口径）。 */
+  /** true=预警（当前库存 ≤ 安全库存）。安全库存为商品级，全仓共用（需求 P1-6 口径）。 */
   warning: boolean
   /** 最近一次库存变动时间（ISO 字符串）。 */
   lastChangeAt?: string
@@ -132,18 +132,20 @@ export interface ProductStockSummary {
   rows: ProductStockSummaryRow[]
 }
 
-/** 库存流水行（详情页「最近库存流水」，库存模块演示契约）。 */
+/** 库存流水行（详情页「最近库存流水」，由库存模块真实流水映射）。 */
 export interface ProductStockTransaction {
   id: string
   /** 发生时间（ISO 字符串）。 */
   occurredAt: string
-  /** in=入库（绿） out=出库（红）。 */
+  /** in=入库（绿） out=出库（红）；调整流水按变动方向映射。 */
   type: 'in' | 'out'
   /** 变动数量（正数，方向看 type）。 */
   quantity: number
-  /** 变动后的库存数量。 */
+  /** 变动后的库存数量（所在仓库口径）。 */
   afterStock: number
-  /** 关联单据号（如采购订单号）。 */
+  /** 发生仓库（库存模块联表回填）。 */
+  warehouseName?: string
+  /** 关联单据号（如采购订单号）；调整流水缺省。 */
   relatedOrderNo?: string
   operator: string
 }

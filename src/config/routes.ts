@@ -54,19 +54,19 @@ export const routeMeta = {
   currentStock: {
     path: '/inventory/current-stock',
     title: '当前库存',
-    description: '查看各仓库、各商品的实时库存。',
+    description: '按仓库 + 商品查看实时库存，支持库存调整与流水下钻。',
     module: 'inventory',
   },
   stockTransactions: {
     path: '/inventory/stock-transactions',
     title: '库存流水',
-    description: '追踪每一笔入库、出库与调拨流水。',
+    description: '追踪每一笔入库、出库与调整流水（只增不改）。',
     module: 'inventory',
   },
   stockAlert: {
     path: '/inventory/stock-alert',
     title: '安全库存预警',
-    description: '关注低于安全库存的商品并处理预警。',
+    description: '关注当前库存 ≤ 安全库存的商品，跳转采购补货。',
     module: 'inventory',
   },
 
