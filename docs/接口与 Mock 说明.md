@@ -423,3 +423,57 @@ export const productQueryKeys = {
 8. 商品详情「最近库存流水」新增「仓库」列（`ProductStockTransaction.warehouseName` 可选字段）：真实流水跨仓，缺仓库维度无法读；「变动后库存」为所在仓库口径；
 9. 期初建账不设独立向导：与库存调整共用入口（需求「期初录入走 adjust 流水」的直译），操作人展示名按仓储部员工轮换；
 10. 库存成本核算（移动平均 / 先进先出）、批次效期、库位、盘点单、调拨按需求明确不做（第二阶段）。
+
+## 「对账管理」模块契约（已实现）
+
+覆盖路线图第 10 步：按「供应商 + 对账期间」把已收货的采购单据汇总成对账单。状态机 `draft → pending → confirmed / disputed → closed`，全部由服务端业务动作驱动（前端不可直接改 status）。明细粒度 = 收货单 × 商品（单价 / 采购数量取订单明细快照，实收取收货单），金额五件套由服务端实时推导：订单金额 = Σ(采购数量 × 单价)、应付 = Σ(实收 × 单价)、待付 = 应付 − 已付、差异金额为人工标记口径。
+
+### 接口一览
+
+| Method | Path                           | 说明（错误码为业务 code）                                                                                                                      |
+| ------ | ------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------- |
+| GET    | `/reconciliation/page`         | 对账单分页：supplierId、status、keyword（对账单号 / 供应商名称）、periodFrom / periodTo（与单据期间有交集即命中）；创建时间倒序                |
+| GET    | `/reconciliation/detail?id=`   | 对账单详情（明细行 + 金额五件套，金额由明细实时推导不落存储）                                                                                  |
+| POST   | `/reconciliation/create`       | 创建对账单：`{supplierId, periodStart, periodEnd, receiptIds[], remark?, submit?}`；submit=true 生成并提交（待确认），缺省保存草稿             |
+| POST   | `/reconciliation/update`       | 编辑草稿（仅 draft 可改，明细整单替换），可顺带 submit 提交                                                                                    |
+| POST   | `/reconciliation/submit`       | 提交草稿：draft → pending                                                                                                                      |
+| POST   | `/reconciliation/confirm`      | 确认通过：pending / disputed → confirmed，清除差异标记；`{id, opinion?}`                                                                       |
+| POST   | `/reconciliation/mark-diff`    | 标记差异：pending / disputed → disputed，可重复标记更新；`{id, diffType, diffAmount?, reason}`                                                 |
+| POST   | `/reconciliation/close`        | 关闭对账单：confirmed → closed（终态）；`{id, remark?}`                                                                                        |
+| GET    | `/reconciliation/pending-pool` | 待对账单据池分页：已收货且未被任何对账单纳入的收货单；supplierId、keyword（订单号 / 收货单号 / 商品）、receivedFrom / receivedTo；收货时间倒序 |
+| GET    | `/reconciliation/summary`      | 对账汇总看板：待对账金额 / 笔数、本月已对账金额 / 笔数、待确认笔数、有差异笔数 + 近期待处理（pending + disputed 创建倒序前 5）                 |
+
+`data.total` 为总页数（分页口径同前）。列表参数 `ReconciliationListParams` / 池参数 `ReconciliationPoolParams` 定义见 `src/features/reconciliation/types.ts`。
+
+### 错误码分段
+
+- `50xx` 对账：5001 对账单不存在、5002 当前状态不允许该操作、5003 对账期间无效（开始晚于结束）、5004 可对账单据校验失败（空勾选 / 重复 / 非已收货 / 跨供应商 / 已被他单纳入）、5005 差异信息不完整（类型缺失或说明为空）；
+- 通用段沿用 `40xx`（4001 参数缺失）。
+
+### 权限码
+
+- 菜单：`menu:reconciliation:list`、`menu:reconciliation:pending-pool`、`menu:reconciliation:overview`（财务预置全部，采购员预置前两个）；
+- 按钮：`reconciliation:list:create`（新建对账——财务 + 采购员，需求口径「采购可协助发起」）、`reconciliation:list:confirm`（确认 / 标记差异，仅财务）、`reconciliation:list:close`（关闭对账单，仅财务）；
+- 审批人保持 `menu:reconciliation:list` 只读。
+
+### 演示数据约定
+
+- 对账单种子 5 条覆盖全部状态：已关闭（RE202609150001，po-003 货款两清）、已确认（RE202610240002，po-014 本月对账）、有差异（RE202610250003，po-015 差 65 元）、待确认（RE202610260004，po-006）、草稿（RE202610270005，po-016 采购员张伟协助发起）；
+- 单据池演示 3 张：po-001（预付 800）、po-017、po-018；为铺垫新增 5 条已完成订单 po-014 ~ po-018（2026-10 下旬，入库量受控于商品库存余量），对应订单 / 发货 / 收货 / 验收 / 库存链路全量自洽；
+- **已付金额为演示种子** `orderPaidAmountsMock`（订单维度，按明细顺序分摊到行）：po-001=800、po-003=6104、po-014=1500，付款管理模块落地后改为 payment 记录推导；
+- 汇总看板「本月已对账」按运行时当前月计算（确认时间落月口径，含已关闭）；种子按 2026-10 演示基准设计，时间推进后自然滚动；
+- 草稿编辑时草稿已纳入的单据不在池中（被本草稿占用），由编辑视图从明细还原合并展示；
+- 数据集不变量见 `src/mocks/data/dataset.test.ts`「对账数据集不变量」（状态全覆盖、单号格式与流水递增、明细 ↔ 收货单 / 订单逐行自洽、金额链推导、池与对账单引用互斥、差异字段仅在有差异状态、供应商快照与员工姓名校验）。
+
+### 需求偏差记录
+
+1. **对账单号前缀 RE**：原型标注 RC 前缀与收货单（RC）冲突，改为 `RE + 单据日期 + 4 位全局流水`；
+2. 已付金额为演示种子（见上），「已付 / 待付」在付款管理落地前为近似演示值；
+3. 差异金额为人工标记口径：MVP 一次发清无自动短收差异，差异由财务「标记差异」动作写入（原型差异列的 ¥2,000 演示值即此口径）；
+4. 详情页「关联付款」按钮为二期占位（付款管理模块落地后开放），当前以 Tooltip 标注；
+5. 「导出 Excel」以当前明细 CSV（`downloadCsv`，带 BOM）替代，后端导出接口留待二期；
+6. 单据池排除规则：被任何对账单引用（**含草稿**）的单据不再出现，防止同一单据重复对账；验收结论不影响对账资格（已收货即可对账，应付按实收口径）；
+7. 整单对账：勾选单元为收货单（整单纳入），部分行对账按需求明确不做（二期）；
+8. 批量发起对账要求同一供应商（一张对账单只对一家供应商），跨供应商勾选在池表格侧拦截；
+9. 确认通过同时是差异的终结动作（disputed → confirmed，服务端清除差异标记）；差异处理过程记录以最后一次标记为准；
+10. 发票匹配、自动核销、供应商门户确认对账按需求明确不做（二期）。
