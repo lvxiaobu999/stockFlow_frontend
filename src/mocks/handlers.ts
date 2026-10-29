@@ -8,6 +8,7 @@ import { productHandlers } from './handlers/productHandlers'
 import { purchaseOrderHandlers } from './handlers/purchaseOrderHandlers'
 import { purchaseRequestHandlers } from './handlers/purchaseHandlers'
 import { receivingHandlers } from './handlers/receivingHandlers'
+import { reconciliationHandlers } from './handlers/reconciliationHandlers'
 import { roleHandlers } from './handlers/roleHandlers'
 import { supplierHandlers } from './handlers/supplierHandlers'
 import { userHandlers } from './handlers/userHandlers'
@@ -27,6 +28,7 @@ export const handlers = [
   ...supplierHandlers,
   ...portalHandlers,
   ...receivingHandlers,
+  ...reconciliationHandlers,
   ...inventoryHandlers,
   ...warehouseHandlers,
 ]

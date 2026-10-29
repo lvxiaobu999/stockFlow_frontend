@@ -103,6 +103,10 @@ export const rolePermissionCodes: Record<string, string[]> = {
     'menu:inventory:stock-transactions',
     'menu:inventory:stock-alert',
     'inventory:stock-alert:create-request',
+    // 对账协助发起：采购员可查看对账进展并发起对账（确认 / 关闭仍归财务）。
+    'menu:reconciliation:list',
+    'menu:reconciliation:pending-pool',
+    'reconciliation:list:create',
   ],
   approver: [
     'menu:dashboard',
@@ -135,6 +139,10 @@ export const rolePermissionCodes: Record<string, string[]> = {
   finance: [
     'menu:dashboard',
     'menu:reconciliation:list',
+    // 财务对账核心动作：新建 / 确认（含标记差异）/ 关闭。
+    'reconciliation:list:create',
+    'reconciliation:list:confirm',
+    'reconciliation:list:close',
     'menu:reconciliation:pending-pool',
     'menu:reconciliation:overview',
     'menu:payment:pending',
@@ -299,7 +307,18 @@ export const permissionTreeMock: PermissionNode[] = [
     title: '对账管理',
     type: 'menu',
     children: [
-      { key: 'menu:reconciliation:list', title: '对账列表', type: 'menu' },
+      {
+        key: 'menu:reconciliation:list',
+        title: '对账列表',
+        type: 'menu',
+        children: [
+          // 新建对账：财务主责，采购员可协助发起（需求《06-对账管理》权限口径）。
+          { key: 'reconciliation:list:create', title: '新建对账', type: 'button' },
+          // 确认 / 标记差异共用一个按钮码（详情页确认对账与确认页两个动作同源）。
+          { key: 'reconciliation:list:confirm', title: '确认 / 标记差异', type: 'button' },
+          { key: 'reconciliation:list:close', title: '关闭对账单', type: 'button' },
+        ],
+      },
       { key: 'menu:reconciliation:pending-pool', title: '待对账单据池', type: 'menu' },
       { key: 'menu:reconciliation:overview', title: '对账汇总看板', type: 'menu' },
     ],

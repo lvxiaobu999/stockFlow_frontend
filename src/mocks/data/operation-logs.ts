@@ -16,6 +16,7 @@ export const LOG_MODULES = [
   { value: 'purchase', label: '采购管理' },
   { value: 'approval', label: '审批中心' },
   { value: 'receiving', label: '收货与验收' },
+  { value: 'reconciliation', label: '对账管理' },
   { value: 'supplier-portal', label: '供应商门户' },
 ] as const
 

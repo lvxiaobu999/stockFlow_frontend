@@ -19,6 +19,12 @@ const SEED_LOGISTICS: Record<string, { logisticsCompany: string; trackingNo: str
   'po-006': { logisticsCompany: '京东物流', trackingNo: 'JD0041228890517' },
   'po-007': { logisticsCompany: '德邦物流', trackingNo: 'DB77120945512', remark: '文件柜包装易损，收货时请当面验货' },
   'po-009': { logisticsCompany: '顺丰速运', trackingNo: 'SF3172201190884', remark: '月度补货一次性发出' },
+  // 对账管理模块铺垫订单（po-014 ~ po-018）的物流种子。
+  'po-014': { logisticsCompany: '顺丰速运', trackingNo: 'SF3180331077211', remark: '打印耗材月度补货' },
+  'po-015': { logisticsCompany: '京东物流', trackingNo: 'JD0055780112934' },
+  'po-016': { logisticsCompany: '德邦物流', trackingNo: 'DB882310477653', remark: '文具整箱发货，注意防潮' },
+  'po-017': { logisticsCompany: '中通快递', trackingNo: 'ZT3390215588607' },
+  'po-018': { logisticsCompany: '韵达快递', trackingNo: 'YD4460219012285' },
 }
 
 /** 由订单明细构建发货明细快照（MVP 一次发清：实发 = 订购）。 */

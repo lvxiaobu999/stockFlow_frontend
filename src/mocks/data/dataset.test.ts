@@ -12,12 +12,20 @@ import { resolvePermissions } from './auth'
 import { OPERATION_LOG_TOTAL, LOG_MODULES, operationLogsMock } from './operation-logs'
 import { permissionTreeMock, roleMock, rolePermissionCodes } from './roles'
 import { suppliersMock } from './suppliers'
-import { usersMock, DEMO_SUPPLIER_USERNAME, getRoleUserCount } from './users'
+import { usersMock, DEMO_SUPPLIER_USERNAME, getRoleUserCount, findUserByUsername } from './users'
 import { warehousesMock } from './warehouses'
 import { approvalRecordsMock, nextPurchaseRequestCode, purchaseRequestsMock } from './purchaseRequests'
 import { nextPurchaseOrderCode, purchaseOrdersMock } from './purchaseOrders'
 import { shipmentsMock } from './shipments'
 import { inspectionsMock, receiptsMock } from './receiving'
+import {
+  buildReconciliationPool,
+  buildReconciliationSummary,
+  nextReconciliationCode,
+  orderPaidAmountsMock,
+  reconsMock,
+  toReconciliationRecord,
+} from './reconciliation'
 import { DEFAULT_WAREHOUSE, inventoriesMock, stockTransactionsMock } from './inventory'
 import { calcStockAmount, isStockWarning } from '@/features/inventory/utils/stock'
 
@@ -357,8 +365,8 @@ describe('审批中心数据集不变量', () => {
 })
 
 describe('采购订单数据集不变量', () => {
-  it('订单 13 条覆盖全部状态，编号唯一且 = PO + 创建日期 + 4 位全局递增流水', () => {
-    expect(purchaseOrdersMock).toHaveLength(13)
+  it('订单 18 条覆盖全部状态，编号唯一且 = PO + 创建日期 + 4 位全局递增流水', () => {
+    expect(purchaseOrdersMock).toHaveLength(18)
     const byStatus = (status: PurchaseOrderStatus) => purchaseOrdersMock.filter((item) => item.status === status)
     expect(byStatus('draft')).toHaveLength(1)
     expect(byStatus('pending_supplier')).toHaveLength(2)
@@ -366,11 +374,12 @@ describe('采购订单数据集不变量', () => {
     expect(byStatus('shipped')).toHaveLength(2)
     expect(byStatus('received')).toHaveLength(1)
     expect(byStatus('inspected')).toHaveLength(1)
-    expect(byStatus('completed')).toHaveLength(1)
+    // 6 条已完成（po-003 + po-014 ~ po-018）：后 5 条为对账模块铺垫。
+    expect(byStatus('completed')).toHaveLength(6)
     expect(byStatus('rejected')).toHaveLength(1)
     expect(byStatus('cancelled')).toHaveLength(1)
-    expect(new Set(purchaseOrdersMock.map((item) => item.id)).size).toBe(13)
-    expect(new Set(purchaseOrdersMock.map((item) => item.code)).size).toBe(13)
+    expect(new Set(purchaseOrdersMock.map((item) => item.id)).size).toBe(18)
+    expect(new Set(purchaseOrdersMock.map((item) => item.code)).size).toBe(18)
     for (const item of purchaseOrdersMock) {
       expect(item.code).toMatch(/^PO\d{8}\d{4}$/)
       // 编码日期段必须与创建日期一致，流水段为正整数。
@@ -384,7 +393,7 @@ describe('采购订单数据集不变量', () => {
   })
 
   it('下一编号 = 今天日期 + 全局最大流水 + 1', () => {
-    expect(nextPurchaseOrderCode()).toBe(`PO${dayjs().format('YYYYMMDD')}0014`)
+    expect(nextPurchaseOrderCode()).toBe(`PO${dayjs().format('YYYYMMDD')}0019`)
   })
 
   it('明细引用真实商品且不重复：行金额 = 数量 × 成交价，总额 = Σ 行金额', () => {
@@ -597,8 +606,9 @@ describe('收货与验收数据集不变量', () => {
   it('收货状态与订单时间戳自洽：已收货单实收 = 应发，待收货单未登记且无收货人', () => {
     const orderById = new Map(purchaseOrdersMock.map((order) => [order.id, order]))
     const receivedReceipts = receiptsMock.filter((receipt) => receipt.status === 'received')
-    // 种子演示：3 张已收货（po-001 / po-003 / po-006）+ 2 张待收货（po-007 / po-009）。
-    expect(receivedReceipts).toHaveLength(3)
+    // 种子演示：8 张已收货（po-001 / po-003 / po-006 + po-014 ~ po-018 对账铺垫）
+    // + 2 张待收货（po-007 / po-009）。
+    expect(receivedReceipts).toHaveLength(8)
     expect(receiptsMock.filter((receipt) => receipt.status === 'pending')).toHaveLength(2)
     for (const receipt of receiptsMock) {
       const order = orderById.get(receipt.orderId)!
@@ -650,8 +660,9 @@ describe('收货与验收数据集不变量', () => {
 
   it('验收结论与订单时间戳自洽：结论行合格 + 不合格 = 实收，且覆盖全部商品', () => {
     const orderById = new Map(purchaseOrdersMock.map((order) => [order.id, order]))
-    // 种子演示结论分布：全部合格 1（po-003）/ 部分合格 1（po-006，含破损演示）/ 待验收 1（po-001）。
-    expect(inspectionsMock.filter((inspection) => inspection.result === 'qualified')).toHaveLength(1)
+    // 种子演示结论分布：全部合格 6（po-003 + po-014 ~ po-018，一次发清全合格）/
+    // 部分合格 1（po-006，含破损演示）/ 待验收 1（po-001）。
+    expect(inspectionsMock.filter((inspection) => inspection.result === 'qualified')).toHaveLength(6)
     expect(inspectionsMock.filter((inspection) => inspection.result === 'partial')).toHaveLength(1)
     expect(inspectionsMock.filter((inspection) => inspection.result === 'pending')).toHaveLength(1)
     const staffNames = new Set(usersMock.filter((user) => user.userType === 'staff').map((user) => user.name))
@@ -682,6 +693,138 @@ describe('收货与验收数据集不变量', () => {
     for (const inspection of inspectionsMock) {
       expect(['received', 'inspected', 'completed']).toContain(orderById.get(inspection.orderId)!.status)
     }
+  })
+})
+
+describe('对账数据集不变量', () => {
+  it('对账单 5 条覆盖全部状态，单号 = RE + 创建日期 + 全局递增流水', () => {
+    expect(reconsMock).toHaveLength(5)
+    const statuses = reconsMock.map((row) => row.status).sort()
+    expect(statuses).toEqual(['closed', 'confirmed', 'disputed', 'draft', 'pending'])
+    expect(new Set(reconsMock.map((row) => row.id)).size).toBe(5)
+    for (const row of reconsMock) {
+      expect(row.code).toMatch(/^RE\d{8}\d{4}$/)
+      // 编码日期段必须与创建日期一致。
+      expect(row.code.startsWith(`RE${dayjs(row.createdAt).format('YYYYMMDD')}`)).toBe(true)
+    }
+    // 流水全局随创建时间递增。
+    const byTime = [...reconsMock].sort((a, b) => a.createdAt.localeCompare(b.createdAt))
+    const seqs = byTime.map((row) => Number(row.code.slice(-4)))
+    expect([...seqs].sort((a, b) => a - b)).toEqual(seqs)
+    // 下一编号 = 今天日期 + 全局最大流水 + 1。
+    expect(nextReconciliationCode()).toBe(`RE${dayjs().format('YYYYMMDD')}0006`)
+  })
+
+  it('明细行与收货单 / 订单逐行自洽：单价取订单快照，金额 = 实收 × 单价，行已付 ≤ 行金额', () => {
+    const orderById = new Map(purchaseOrdersMock.map((order) => [order.id, order]))
+    const receiptById = new Map(receiptsMock.map((receipt) => [receipt.id, receipt]))
+    for (const row of reconsMock) {
+      const record = toReconciliationRecord(row)
+      expect(record.items.length).toBeGreaterThan(0)
+      for (const item of record.items) {
+        const receipt = receiptById.get(item.receiptId)!
+        expect(receipt).toBeDefined()
+        expect(receipt.status).toBe('received')
+        expect(item.orderId).toBe(receipt.orderId)
+        const order = orderById.get(item.orderId)!
+        const receiptItem = receipt.items.find((candidate) => candidate.productId === item.productId)!
+        const orderItem = order.items.find((candidate) => candidate.productId === item.productId)!
+        expect(item.unitPrice).toBe(orderItem.unitPrice)
+        expect(item.receivedQty).toBe(receiptItem.receivedQty)
+        expect(item.amount).toBe(Math.round(item.receivedQty * item.unitPrice * 100) / 100)
+        expect(item.paidAmount).toBeLessThanOrEqual(item.amount)
+      }
+    }
+  })
+
+  it('金额链自洽：订单金额 / 应付按明细求和，待付 = 应付 − 已付，已付种子 ≤ 订单应付', () => {
+    for (const row of reconsMock) {
+      const record = toReconciliationRecord(row)
+      const orderAmount =
+        Math.round(record.items.reduce((sum, item) => sum + item.orderedQty * item.unitPrice, 0) * 100) / 100
+      const payable = Math.round(record.items.reduce((sum, item) => sum + item.amount, 0) * 100) / 100
+      const paid = Math.round(record.items.reduce((sum, item) => sum + item.paidAmount, 0) * 100) / 100
+      expect(record.orderAmount).toBe(orderAmount)
+      expect(record.payableAmount).toBe(payable)
+      expect(record.paidAmount).toBe(paid)
+      expect(record.unpaidAmount).toBe(Math.round((payable - paid) * 100) / 100)
+      expect(record.paidAmount).toBeLessThanOrEqual(record.payableAmount)
+    }
+    for (const [orderId, paid] of Object.entries(orderPaidAmountsMock)) {
+      const order = purchaseOrdersMock.find((candidate) => candidate.id === orderId)!
+      expect(order).toBeDefined()
+      expect(paid).toBeLessThanOrEqual(order.items.reduce((sum, item) => sum + item.amount, 0))
+    }
+  })
+
+  it('差异字段仅出现在有差异状态；确认 / 关闭时间线与状态自洽', () => {
+    for (const row of reconsMock) {
+      if (row.status === 'disputed') {
+        expect(row.diffType).toBeDefined()
+        expect(row.diffReason).toBeTruthy()
+      } else {
+        expect(row.diffType).toBeUndefined()
+        expect(row.diffAmount).toBeUndefined()
+        expect(row.diffReason).toBeUndefined()
+      }
+      if (row.status === 'confirmed' || row.status === 'closed') {
+        expect(row.confirmedByName).toBeTruthy()
+        expect(row.confirmedAt).toBeDefined()
+      } else {
+        expect(row.confirmedAt).toBeUndefined()
+      }
+      if (row.status === 'closed') {
+        expect(row.closedByName).toBeTruthy()
+        expect(row.closedAt).toBeDefined()
+        expect(row.closedRemark).toBeTruthy()
+      } else {
+        expect(row.closedAt).toBeUndefined()
+      }
+    }
+  })
+
+  it('待对账单据池 = 已收货且未被任何对账单纳入：3 张演示单且与对账单引用互斥', () => {
+    const pool = buildReconciliationPool()
+    expect(pool).toHaveLength(3)
+    const reconciled = new Set(reconsMock.flatMap((row) => row.receiptIds))
+    for (const row of pool) {
+      expect(reconciled.has(row.receiptId)).toBe(false)
+      const receipt = receiptsMock.find((candidate) => candidate.id === row.receiptId)!
+      expect(receipt.status).toBe('received')
+    }
+    // 反向：已收货单要么已被对账单纳入、要么留在池里（无第三种状态）。
+    for (const receipt of receiptsMock.filter((item) => item.status === 'received')) {
+      expect(reconciled.has(receipt.id) || pool.some((row) => row.receiptId === receipt.id)).toBe(true)
+    }
+  })
+
+  it('汇总看板口径：待确认 1 笔 / 有差异 1 笔，近期待处理按创建时间倒序', () => {
+    const summary = buildReconciliationSummary()
+    expect(summary.poolCount).toBe(3)
+    expect(summary.pendingConfirmCount).toBe(1)
+    expect(summary.disputedCount).toBe(1)
+    expect(summary.recentList.map((row) => row.status)).toEqual(['pending', 'disputed'])
+    // 本月已对账口径含已关闭，确认时间落在当前月的记录才计入
+    // （种子按 2026-10 演示基准设计，真实时间推进后自然滚动，不做硬断言）。
+    expect(summary.monthConfirmedCount).toBeGreaterThanOrEqual(0)
+  })
+
+  it('对账单供应商快照与档案一致，创建人 / 确认人均为真实员工展示名', () => {
+    const supplierById = new Map(suppliersMock.map((item) => [item.id, item]))
+    const staffNames = new Set(usersMock.filter((user) => user.userType === 'staff').map((user) => user.name))
+    for (const row of reconsMock) {
+      expect(row.supplierName).toBe(supplierById.get(row.supplierId)!.name)
+      expect(staffNames.has(row.createdByName)).toBe(true)
+      if (row.confirmedByName) expect(staffNames.has(row.confirmedByName)).toBe(true)
+      if (row.closedByName) expect(staffNames.has(row.closedByName)).toBe(true)
+    }
+    // 草稿演示单由采购员（张伟）协助发起，财务确认 / 关闭演示集中在陆萍。
+    expect(reconsMock.some((row) => row.createdByName === findUserByUsername('zhangwei')!.name)).toBe(true)
+    expect(
+      reconsMock
+        .filter((row) => row.status === 'closed')
+        .every((row) => row.closedByName === findUserByUsername('lupei')!.name),
+    ).toBe(true)
   })
 })
 

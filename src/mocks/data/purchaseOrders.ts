@@ -13,17 +13,19 @@ import { suppliersMock } from './suppliers'
 import { findUserByUsername } from './users'
 
 /**
- * 采购订单 Mock 数据：13 条订单覆盖全部状态（草稿 1 / 待供应商确认 2 / 已确认 3 /
- * 已发货 2 / 已收货 1 / 已验收 1 / 已完成 1 / 已拒绝 1 / 已作废 1）。
+ * 采购订单 Mock 数据：18 条订单覆盖全部状态（草稿 1 / 待供应商确认 2 / 已确认 3 /
+ * 已发货 2 / 已收货 1 / 已验收 1 / 已完成 6 / 已拒绝 1 / 已作废 1）。
  *
  * - 编号 PO + 创建日期 + 4 位流水，全局流水随创建日期递增；
  * - 「已生成订单」申请（pr-001 / pr-002）的订单由申请种子**派生**：
  *   订单编码 / 明细 / 金额全部取自申请记录（成交单价 = 申请参考价），
  *   创建时间 = 申请审批通过后 2 小时（申请创建 +26h），保证两侧数据集自洽；
- * - 其余 11 条为线下补录订单（requestId 为空，数据库设计允许 request_id NULL），
+ * - 其余 16 条为线下补录订单（requestId 为空，数据库设计允许 request_id NULL），
  *   明细引用 productsMock 真实商品，成交价默认取采购参考价（已完成单含一笔议价）；
  * - 供应商 sup-001（杭州宏远纸业，门户演示账号 hongyuan01）名下固定 4 条订单
  *   （已完成 / 待确认 / 已确认 / 已发货），保证门户首页、待办与发货记录可完整演示；
+ * - 后 5 条已完成订单（po-014 ~ po-018，2026-10 下旬）为对账管理模块铺垫：
+ *   已收货单据池与对账单种子由它们派生（入库数量控制在商品库存余量内）；
  * - 生命周期时间由「创建时间 + 小时偏移」确定性生成；
  * - 供应商在途订单数（pendingOrderCount）由本数据集回写，口径见文件末尾。
  */
@@ -196,6 +198,79 @@ const standaloneOrderSeeds: Array<{ created: string; seed: StandaloneOrderSeed }
       expectedDate: '2026-11-10',
       items: [{ prodIndex: 2, quantity: 30, unitPrice: 136 }],
       steps: { sentAt: 2, confirmedAt: 20 },
+    },
+  },
+  // ── 以下 5 条已完成订单为对账管理模块铺垫（入库数量 ≤ 商品库存余量）────
+  {
+    // po-014：对账单「已确认」演示单（10 月对账，部分预付 1500）。
+    created: '2026-10-19 09:00:00',
+    seed: {
+      purchaser: 'zhangwei',
+      supplierId: 'sup-002',
+      status: 'completed',
+      expectedDate: '2026-10-28',
+      remark: '打印耗材月度补货',
+      items: [
+        { prodIndex: 4, quantity: 100, unitPrice: 12.8 },
+        { prodIndex: 6, quantity: 100, unitPrice: 18.9 },
+      ],
+      steps: { sentAt: 2, confirmedAt: 22, shippedAt: 40, receivedAt: 64, inspectedAt: 88, completedAt: 168 },
+    },
+  },
+  {
+    // po-015：对账单「有差异」演示单（应付与送货单差 65 元，人工标记）。
+    created: '2026-10-20 09:00:00',
+    seed: {
+      purchaser: 'linmin',
+      supplierId: 'sup-012',
+      status: 'completed',
+      expectedDate: '2026-10-30',
+      items: [
+        { prodIndex: 24, quantity: 30, unitPrice: 18.8 },
+        { prodIndex: 25, quantity: 10, unitPrice: 8.9 },
+      ],
+      steps: { sentAt: 2, confirmedAt: 22, shippedAt: 40, receivedAt: 64, inspectedAt: 88, completedAt: 168 },
+    },
+  },
+  {
+    // po-016：对账单「草稿」演示单（采购员协助发起，尚未提交确认）。
+    // 供应商需已开通门户（发货单数据集不变量），故取 sup-008 荣达化工。
+    created: '2026-10-21 10:00:00',
+    seed: {
+      purchaser: 'zhaolei',
+      supplierId: 'sup-008',
+      status: 'completed',
+      expectedDate: '2026-10-31',
+      remark: '文具月度补货',
+      items: [
+        { prodIndex: 8, quantity: 50, unitPrice: 9.6 },
+        { prodIndex: 7, quantity: 50, unitPrice: 12.5 },
+      ],
+      steps: { sentAt: 2, confirmedAt: 22, shippedAt: 40, receivedAt: 64, inspectedAt: 88, completedAt: 168 },
+    },
+  },
+  {
+    // po-017：留在待对账单据池的演示单（未纳入任何对账单）。
+    created: '2026-10-22 09:00:00',
+    seed: {
+      purchaser: 'zhangwei',
+      supplierId: 'sup-005',
+      status: 'completed',
+      expectedDate: '2026-11-02',
+      items: [{ prodIndex: 3, quantity: 40, unitPrice: 112 }],
+      steps: { sentAt: 2, confirmedAt: 22, shippedAt: 40, receivedAt: 64, inspectedAt: 88, completedAt: 168 },
+    },
+  },
+  {
+    // po-018：留在待对账单据池的演示单（生命周期压缩在 10-28 前完成）。
+    created: '2026-10-23 14:00:00',
+    seed: {
+      purchaser: 'linmin',
+      supplierId: 'sup-013',
+      status: 'completed',
+      expectedDate: '2026-11-03',
+      items: [{ prodIndex: 28, quantity: 10, unitPrice: 69 }],
+      steps: { sentAt: 1, confirmedAt: 10, shippedAt: 22, receivedAt: 44, inspectedAt: 68, completedAt: 115 },
     },
   },
 ]
