@@ -142,19 +142,19 @@ export const routeMeta = {
   reconciliationList: {
     path: '/reconciliation/list',
     title: '对账列表',
-    description: '查看对账单及其对账状态。',
+    description: '按供应商与期间汇总已收货单据，跟踪确认、差异与关闭进度。',
     module: 'reconciliation',
   },
   reconciliationPendingPool: {
     path: '/reconciliation/pending-pool',
     title: '待对账单据池',
-    description: '查看待对账的单据池。',
+    description: '已收货未对账单据池，勾选同一供应商单据整单发起对账。',
     module: 'reconciliation',
   },
   reconciliationOverview: {
     path: '/reconciliation/overview',
     title: '对账汇总看板',
-    description: '对账汇总看板。',
+    description: '对账进度总览：待对账金额、本月已对账与待处理事项。',
     module: 'reconciliation',
   },
 
